@@ -66,7 +66,7 @@ int main() {
         // begin
 
         // Def, Undef
-        test_def_undef();
+//        test_def_undef();
 
         // test_sum_int();
 
@@ -90,11 +90,24 @@ void test_eval() {
     assert_ctr(exp == result && "test_eval() :: strings should be returned");
 #ifdef WITH_FLOATING_POINT
     result = eval( exp = mkfloat(1.25), nil);
-    assert_ctr(exp == result && "test_eval() :: strings should be returned");
+    assert_ctr(exp == result && "test_eval() :: floats should be returned");
 #endif
+
+    // Test for quoted expressions
+    exp = mkstring("Test");
+    result = eval( quote(exp), nil );
+    assert_ctr(lisp_equals(exp, result) && "test_eval() :: quote should return the expression untouched");
+
+    exp = mksym("A");
+    result = eval( quote(exp), nil );
+    assert_ctr(lisp_equals(exp, result) && "test_eval() :: quote should return the expression untouched");
+
+    exp = mkfixnum(345);
+    result = eval( quote(exp), nil );
+    assert_ctr(lisp_equals(exp, result) && "test_eval() :: quote should return the expression untouched");
+
     lisp_cleanup();
 }
-
 
 void test_def_undef() {
     lisp_init();
@@ -184,7 +197,9 @@ void test_gc_collect_all() {
     lisp_pprint(all_objects,0);
 #endif
 
-    assert_ctr(lisp_length(all_objects) == 1 && "test_gc_collect_all() :: There is a single nil object in the list");
+    int l = lisp_length(all_objects);
+
+    assert_ctr(lisp_length(all_objects) > 0 && "test_gc_collect_all() :: There is a single nil object plus all inits");
     ptr = "(1 2 3)";
     exp = lisp_read(&ptr);
 
@@ -192,7 +207,7 @@ void test_gc_collect_all() {
     lisp_print_list(all_objects);
     lisp_pprint(all_objects,0);
 #endif
-    assert_ctr(lisp_length(all_objects) == 7 && "test_gc_collect_all() :: 6 for the list and the 1 nil object");
+    assert_ctr((lisp_length(all_objects) == 6 + l) && "test_gc_collect_all() :: 6 for the list");
 
     obj = find_object(car(exp), all_objects);
     assert_ctr(car(exp) == car(obj) && "test_gc_collect_all() :: can find an object in all_objects");
@@ -204,7 +219,7 @@ void test_gc_collect_all() {
     assert_ctr(rest(exp) == car(obj) && "test_gc_collect_all() :: can find a cons in all_objects");
 
     lisp_free(true);
-    assert_ctr(lisp_length(all_objects) == 1 && "test_gc_collect_all() :: Back to 1 nil object after free");
+    assert_ctr(lisp_length(all_objects) == 1 && "test_gc_collect_all() :: Everything gone, except the final nil");
 
     lisp_cleanup();
 }
@@ -231,16 +246,12 @@ void test_lisp_quote() {
     cell exp;
     const char *ptr;
 
-    ptr = "'";
-    exp = lisp_read(&ptr);
-    assert_ctr(exp -> type == SYM && "test_lisp_quote() :: should return a quote symbol");
-    assert_ctr(lisp_eq(exp, "'")  && "test_lisp_quote() :: Symbol should be a quote");
-
     ptr = "'A";
     exp = lisp_read(&ptr);
-    assert_ctr(exp -> type == SYM && "test_lisp_quote() :: should return a quote symbol");
-    assert_ctr(lisp_eq(exp, "'")  && "test_lisp_quote() :: Symbol should be a quote");
-    assert_ctr(*ptr == 'A'        && "test_lisp_quote() :: Parsing should not be finished");
+    assert_ctr(car(exp) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a)");
+    assert_ctr(lisp_eq(car(exp), "QUOTE") && "test_lisp_quote() :: Symbol should be a quote");
+    assert_ctr(cadr(exp) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a)");
+    assert_ctr(lisp_eq(cadr(exp),"A") && "test_lisp_quote() :: Parsing should not be finished");
 
     lisp_cleanup();
 }

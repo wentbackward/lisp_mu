@@ -58,6 +58,11 @@ Philosophy
 * Readable code, favours readability over terseness. This may annoy more traditional C programmers (I used
   to be of that mindset).
 
+A lot of the code is just syntactic sugar on top of the basic list processing system. Hence it might look like a
+large library, but in reality it will compile down rather small. The sugar is to avoid long sentences of car(cdr(car
+... etc etc. Each subsection therefore maintains a firewall against the other subsections and thus the underlying
+lisp structures can be adapted without affecting the language itself.
+
 Garbage Collection
 MU LISP is using a simplified mark and sweep algorithm. As with most lisps there is an environment which
 contains all accessible symbols. Marking is done recursively from the environment. It is then trivial to
