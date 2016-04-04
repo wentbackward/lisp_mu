@@ -1,0 +1,151 @@
+About MU LISP
+MU LISP is a lightweight, LISPy language, intended for embedded applications on processors such
+as the ARM cortex M0 and up.
+
+1. I need the ability to create higher level abstractions on the hardware and felt the processing power
+   combined with FPGA type functionality now available on low cost chips such as Cypress' PSoC4 give me
+   sufficient processing power to use these abstractions
+
+2. Being able to create data abstraction boundaries and support message passing between devices is
+   increasingly important.
+
+The language itself provides only a base upon which the user can build abstractions to the underlying hardware. This
+is the whole purpose of MU LISP, to allow creation of a robust and dynamic environment with which to interact
+with the hardware. So MU LISP provides no device specific features.
+
+LISP lambda calculus was chosen for several reasons. It is simple to parse. Evaluation is a well documented
+path. Code and data use the same structure, thus both can be passed around as messages. Processing of lists and
+streams allows for delayed execution as well as providing effective means of dealing with infinity. This helps
+with the major drawback, particularly for real-time applications, that the number of cycles (time/power) of many
+list processing operations are based upon the composition of the underlying lists. To help manage this, evaluation
+can be easily delayed and the garbage collector is not automatic.
+
+Purposes of MU LISP
+* a general purpose language for embedded processing.
+* an extensible language, such that the hardware designer can further abstract a language specific
+  to their application.
+* a data storage mechanism.
+* a communication protocol.
+* a configuration tool.
+* a dynamic, field programmable environment
+
+General purpose language
+MU LISP is an interpreted language that is simple enough to run on low power hardware such as the ARM Cortex M0. The
+intention is for the embedded software developer to expose only as much of the underlying hardware to MU LISP as
+necessary to complete the task in hand.
+
+Data storage mechanism
+MU LISP can be used for simple data storage and retrieval on the device, either from C or within MU LISP itself. The
+language frees the programmer from memory management worries.
+
+Communication Protocol
+A REPL can be made available over serial or other channels such that devices can exchange information in LISP
+syntax. Not only is the syntax efficient but it is also a dynamic language, so both raw data and algorithms
+can be transferred at will.
+
+Configuration Tool
+The LISP syntax allows for readable, memory managed data to stored and easily accessible within both C and
+MU LISP environments.
+
+Philosophy
+* Easy to add language features to access underlying hardware. There are no hardware specific features in the
+  language itself, they are always extensions to keep the core robust.
+* Very tight on memory control. Able to clean up and re-initialise for long running applications. I do not want to
+  be forced to persist state and restart the processor as such features may not be available.
+* A garbage collector that is controlled by the host programmer (semi-automated)
+* Fast and robust parsing - recursive descent parser with no backtracking
+* Efficient storage and data representation
+* Readable code, favours readability over terseness. This may annoy more traditional C programmers (I used
+  to be of that mindset).
+
+Garbage Collection
+MU LISP is using a simplified mark and sweep algorithm. As with most lisps there is an environment which
+contains all accessible symbols. Marking is done recursively from the environment. It is then trivial to
+traverse all LISP objects to free the non-marked ones and unmark the marked ones.
+
+With list processing, circular references are possible, the marking phase can deal with this easily as recursion
+is halted for already marked objects. Sweeping is always safe as the entire object space is swept one object
+at a time without recursion of objects. This is the main reason for choosing mark/sweep over reference counting
+as a strategy.
+
+No effort has been made to move marked objects into a contiguous space. I'll wait to see how things work in real
+life rather than prematurely optimise.
+
+Garbage collection time is relative to the size of the environment, as all objects are traversed twice. Time should
+always be 2N if no circular references exist.
+
+Memory Leaks
+The code has been checked by running the test suite along with a memory profiler (Dr Memory v1.10
+64bit mode on windows). There are no detected leaks.
+
+It is possible to create a leak from C using the lisp utilities, as you can set the car of several conses to the same
+memory address. There are no checks for this. Within MU LISP car will copy the underlying data structure for
+safety reasons.
+
+Again, until MU LISP is used in anger, I don't want to prematurely optimise anything here.
+
+To run the memory profiler on windows:
+Set the test iterations to a suitably high value.
+Get the correct executable path from cmake
+"C:\Program Files (x86)\Dr. Memory\bin64\drmemory.exe" -show_reachable -- C:\Users\paul\.CLion2016.1\system\cmake\generated\list2-c181260f\c181260f\Debug\lisp_mu_test.exe
+
+Debugger
+Would be nice to have one.
+
+Data Types
+Currently these are the supported data types:
+SYMBOL: Any contiguous stream of characters except brackets and space. A symbol can have numbers but cannot be
+        a number. Symbols either represent themselves or represent a function or data.
+FIXNUM: Any symbol that can be interpreted as an integer. The underlying storage is `long` from your C compiler
+FLOAT:  Any symbol that can be interpreted as a floating point decimal and WITH_FLOATING_POINT is enabled in the header
+        file. The underlying storage is a double from your C compiler
+STRING: Any continuous stream of characters contained within double quotes will be read as a "String". Escaping
+        can be used to insert the escape character \\ or a double quote \"
+CONS:   A cons cell containing references to a data object and the next cons cell, thus forming a singly
+        linked list.
+NIL:    A nil object used an an empty list, list termination and false
+
+Operators constants and basic functions
+>, <, <=, >=, =
+and, or, not
++, -, *, /
+pi, e
+min, max
+abs, round
+null?, list?, number?, proc?, symbol?,
+append, begin, lambda
+equal
+map, apply, proc,
+
+
+Multithreading / Concurrency
+Sorry but I have need for it at present. The library is inherently thread unsafe, but should be simple enough
+to add required semaphores to protect objects and references or a message passing paradigm might be more suited
+to embedded applications.
+
+Compatibility
+MU LISP is not compatible with any scheme or lisp specifications. The intention is to leverage the benfits of lisp
+in an embedded environment, where any bloat cannot be tolerated.
+
+Useful references
+My approach was heavily influenced by the following. The information on S7 is excellent, however S7 is much larger
+than I can accommodate. I am a long time user of SBCL and have built several systems using it.
+
+* http://sbcl.org/
+* Norvigs PAIP and subsequently http://norvig.com/lispy.html
+* https://mitpress.mit.edu/sicp/full-text/book/book-Z-H-4.html#%_toc_start and in
+  particular https://mitpress.mit.edu/sicp/full-text/book/book-Z-H-25.html#%_chap_4
+* https://en.wikipedia.org/wiki/S-expression
+* http://c2.com/cgi/wiki?ImplementingLisp
+* https://ccrma.stanford.edu/software/snd/snd/s7.html
+* http://tinyscheme.sourceforge.net/
+* http://soft.vub.ac.be/francqui/Francqui/Files_2a_files/Francqui%202a.pdf
+* http://www.sonoma.edu/users/l/luvisi/sl5.c
+* http://c2.com/cgi/wiki?GarbageCollection
+
+
+Caveat
+I have written some DSLs in my working life, however this is the first full blown language / interpreter. Judging by how
+much I have learned whilst creating MU LISP, there must surely be significant shortcomings that will surface only
+once MU LISP is used in production
+
