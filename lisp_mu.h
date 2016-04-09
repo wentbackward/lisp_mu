@@ -59,7 +59,7 @@ typedef struct cell {
     };
 } lisp_cell, *cell;
 
-cell nil, all_objects, the_empty_environment;
+cell nil, all_objects, the_empty_environment, global_env;
 
 // Accessors
 #define fixnum(A)       *((A)->fixnum)
@@ -97,6 +97,7 @@ cell eval_if(cell exp, cell env);
 cell eval_sequence(cell exps, cell env);
 cell eval_assignment(cell exp, cell env);
 cell eval_definition(cell exp, cell env);
+cell mklist(int l, ...);
 
 // Environment
 #define enclosing_environment(A)    cdr(A)
@@ -120,6 +121,8 @@ cell list_of_values(cell exp, cell env);
 
 // Primitives
 #define primitive_procp(A)          tagged_listp(A, PRIMITIVE)
+#define primative_implementation(A) cadr(A)
+
 
 // Assignment variables
 #define assignmentp(A)              tagged_listp((A), SETB)
@@ -199,8 +202,8 @@ cell lisp_read_symbol (const char **buf);
 cell lisp_read_string (const char **buf);
 cell lisp_read_list   (const char **buf);
 
-void lisp_print_list(cell i);
-void lisp_pprint(cell e, int depth);
+void lisp_print_list_aux(cell i, int depth);
+void lisp_pprint(cell e);
 cell last(cell list);
 cell nth(cell list, int n);
 int lisp_length(cell exp);

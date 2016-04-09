@@ -133,8 +133,11 @@ cell eval_sequence(cell exps, cell env) {
 }
 
 cell eval_assignment(cell exp, cell env) {
-    set_variable_valueb(assignment_variable(exp), eval(assignment_value(exp), env), env);
-    return mksym(OK);
+    cell result = set_variable_valueb(assignment_variable(exp), eval(assignment_value(exp), env), env);
+    if (result -> type == ERROR)
+        return result;
+    else
+        return mksym(OK);
 }
 
 cell eval_definition(cell exp, cell env) {
@@ -149,6 +152,13 @@ cell mkprocedure(cell parameters, cell body, cell env) {
 cell add_binding_to_frameb(cell var, cell val, cell frame) {
     return setcarb(frame, cons(var, car(frame)));
     return setcdrb(frame, cons(val, cdr(frame)));
+}
+
+cell setup_environment() {
+    cell initial = extend_environment(nil, nil, the_empty_environment);
+    define_variableb(mksym("true"), mkfixnum(1), initial);
+    define_variableb(mksym("false"), nil, initial);
+    return initial;
 }
 
 cell extend_environment(cell vars, cell vals, cell base_env) {
@@ -217,16 +227,18 @@ cell define_variableb(cell var, cell val, cell env) {
 
 
 cell apply(cell procedure, cell arguments) {
-    if (primitive_procp(procedure)) {
-        return apply_primitive_proc(procedure, arguments);
-    } else if (compound_procp(procedure)) {
-        return eval_sequence(
-                procedure_body(procedure),
-                (extend_environment(procedure_parameters(procedure),
-                  arguments, procedure_environment(procedure))));
-    }
+//    if (primitive_procp(procedure)) {
+//        return apply_primitive_proc(procedure, arguments);
+//    } else if (compound_procp(procedure)) {
+//        return eval_sequence(
+//                procedure_body(procedure),
+//                (extend_environment(procedure_parameters(procedure),
+//                  arguments, procedure_environment(procedure))));
+//    }
     return mkerror("Unknown procedure type - APPLY");
 }
+
+
 
 bool self_evaluatingp(cell exp) {
     return (exp->type == STRING || numberp(exp));
@@ -386,6 +398,29 @@ bool lisp_eq(cell lhs, any rhs) {
             result = (lhs == rhs);
     }
     return result;
+}
+
+cell mklist(int l, ...) {
+    va_list ap;
+    bool first = true;
+    cell exp;
+    cell list=nil;
+    cell c=nil;
+    cell last=nil;
+    va_start(ap,l);
+    for(; l; l--) {
+        exp = va_arg(ap, cell);
+        c = cons(exp, nil);
+        if (first) {
+            first = false;
+            list = last = c;
+        } else {
+            setcdrb(last, c);
+            last = c;
+        }
+    }
+    va_end(ap);
+    return list;
 }
 
 /**
@@ -685,6 +720,7 @@ void lisp_init() {
 
     // Cleanup all will get these
     the_empty_environment = cons(nil, nil);
+    global_env = setup_environment();
 
 #ifdef DEBUG
     nil->name = "NIL";
@@ -697,7 +733,6 @@ void lisp_init() {
 void lisp_cleanup() {
     // Calling lisp_free with cleanup all set to true
     lisp_free(true);
-
     // These special symbols must be freed explicitly
     free(all_objects);
     free(nil);
@@ -739,18 +774,33 @@ size_t lisp_sizeof(enum lisp_type type) {
 }
 
 
-void lisp_print_list(cell i) {
-    if (!listp(i)) { return; }
+void lisp_pprint(cell i) {
+    lisp_print_list_aux(i, 0);
+}
+
+void lisp_print_list_aux(cell i, int depth) {
+    #define sep() puts(""); for(int i = 0; i < depth; i++) printf("  ")
+    bool first = true;
     cell ptr = i;
-    printf("(");
+    sep();
+    if (listp(i) && depth > 0) {
+        printf("(");
+    }
     while(!nullp(ptr)) {
         cell e = car(ptr);
+        if (!first) {
+            printf(" ");
+        }
+        first = false;
         switch(e->type) {
             case NIL:
                 printf("NIL");
                 break;
             case CONS:
-                printf("<#LIST: ?>");
+                if (depth >0)
+                    printf("<#LIST: ");
+                lisp_print_list_aux(e, depth + 1);
+                printf(">");
                 break;
             case STRING:
                 printf("<#STRING: \"%s\">", e->string);
@@ -770,51 +820,10 @@ void lisp_print_list(cell i) {
                 printf("<#ERROR: \"%s\">", e->string);
                 break;
         }
-        printf(" ");
         ptr = rest(ptr);
     }
-    printf(")\n");
-}
-
-void lisp_pprint(cell e, int depth) {
-#define sep() puts(""); for(int i = 0; i < depth; i++) printf("  ")
-
-    switch(e->type) {
-        case NIL:
-            printf("NIL ");
-            break;
-        case CONS:
-            if (!nullp(e)) {
-                sep();
-                printf("(");
-                sep();
-                lisp_pprint(car(e), depth + 1);
-                printf(" . ");
-                lisp_pprint(cdr(e), depth + 1);
-                sep();
-                printf(")\n");
-            } else {
-            }
-            break;
-        case STRING:
-            printf("String: \"%s\"", e->string);
-            break;
-        case FIXNUM:
-            printf("Fixnum: %d ", (int) fixnum(e));
-            break;
-#ifdef WITH_FLOATING_POINT
-        case FLOAT:
-            printf("Float: %f ", floater(e));
-            break;
-#endif
-        case SYM:
-            printf("Symbol: %s ", symbol(e));
-            break;
-        case ERROR:
-            printf("Error: \"%s\"", e->string);
-            break;
+    if (listp(i)) {
+        sep();
+        printf(")");
     }
 }
-
-
-

@@ -1,9 +1,14 @@
 #include "lisp_mu.h"
 #include <assert.h>
+#include <time.h>
 
 // Testing helpers
 int test_ctr = 0;
 #define assert_ctr(_exp)   test_ctr++; assert(_exp)
+#define start_timer(S)      S = clock()
+#define stop_timer(E)       E = clock()
+#define time_diff(S, E)     ((int)((E - S) * 1000 / CLOCKS_PER_SEC))
+
 
 /*
 void test_sum_int();
@@ -18,66 +23,136 @@ void test_basic_nil();
 void test_nil_list();
 void test_rest_nil();
 void test_lisp_list();
+void test_mklist();
 void test_lisp_strings();
 void test_lisp_quote();
 void test_lisp_float();
 void test_gc_collect_all();
 void test_cons();
 void test_equals();
-void test_def_undef();
+void test_eval_define();
 void test_eval();
-
-/**
- * The following tests are for parsing lisp like structures into
- * an internal representation.
- */
-void parse_tests() {
-    test_lisp_sizeof();
-    test_lisp_fixnum();
-    test_lisp_symbol();
-    test_basic_nil();
-    test_rest_nil();
-    test_nil_list();
-    test_lisp_list();
-    test_lisp_strings();
-    test_lisp_quote();
-    test_lisp_float();
-}
+void test_eval_quoted();
+void test_eval_variablep();
+void test_eval_assignment();
+void test_eval_if();
+void test_eval_lambda();
+void test_eval_begin();
+void test_eval_cond();
+void test_eval_apply();
 
 int main() {
-    const int iters = 500;
+    clock_t t_start, t_end;
+    start_timer(t_start);
+    const int iters = 10000;
     for(int i=0; i< iters ; ++i) {
-        // All parsing scenarios
-        parse_tests();
 
-        test_equals();
+        // General utilities
+        test_lisp_sizeof();             // Provides default sizes based on the LISP type
+        test_lisp_fixnum();             // Integers in lisp
+        test_lisp_symbol();             // Handling of symbols
+        test_basic_nil();               // Handling of nil objects
+        test_rest_nil();                // Handling of REST when confronted with nil
+        test_nil_list();                // Empty lists are nil
+        test_lisp_list();               // Consing into lists
+        test_mklist();                  // Function to simplify cons'ing lists together
+        test_lisp_strings();            // Processing string types
+        test_lisp_quote();              // Quoting of lisp expressions
+        test_lisp_float();              // Floating point, if enabled in mu_lisp.h
+        test_equals();                  // Equivalence of lisp objects and between lisp / c objects
+        test_gc_collect_all();          // garbage collect all memory (i.e. complete cleanup)
 
-        // garbage collect all memory
-        test_gc_collect_all();
+        // Actual LISP functionality
+        test_cons();                    // Ensure the sanity of cons'ing
+        test_eval_quoted();             // eval quoted
+        test_eval_define();             // TODO: eval definition
+        continue;
+        test_eval_variablep();          // TODO: Evaluation of a variable (symbol lookup)
+        test_eval_assignment();         // TODO: eval assignment
+        test_eval_if();                 // TODO: eval if
+        test_eval_lambda();             // TODO: eval lambda
+        test_eval_begin();              // TODO: eval begin
+        test_eval_cond();               // TODO: eval cond
+        test_eval_apply();              // TODO: eval application
+        test_eval();                    // Test dispatch within evaluator
 
-        // Ensure the sanity of cons'ing
-        test_cons();
-
-        // Eval / Apply
-        test_eval();
-
-        // lambda
-
-        // begin
-
-        // Def, Undef
-//        test_def_undef();
-
+        // Libraries exposed from C
+        // TODO: Maths library
         // test_sum_int();
-
         // test_sum_double();
 
-    }
+        // TODO: MAXLEN bounds tests
 
+    }
+    stop_timer(t_end);
+
+    printf("Test took: %d.%ds\n", time_diff(t_start, t_end)/1000, time_diff(t_start, t_end) % 1000);
     printf("Successful Tests: %d\n", test_ctr);
+    printf("Tests per ms: %d\n", test_ctr / time_diff(t_start, t_end));
     return 0;
 }
 
+
+void test_eval_define() {
+    lisp_init();
+
+    cell v, result;
+    v = mksym("x");
+    define_variableb(v, mkfixnum(42), global_env);
+    result = lookup_variable_value(v, global_env);
+    lisp_pprint(global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(42)) && "Var x == 42");
+
+    lisp_cleanup();
+}
+
+void test_eval_assignment() {
+    lisp_init();
+    cell exp, result, env;
+    exp = mklist(3, mksym("set!"), mksym("myvar"), mkfixnum(10));
+    result = eval(exp, global_env);
+    assert_ctr(result->type == ERROR && "Cannot assign unbound variable");
+
+    lisp_cleanup();
+}
+
+void test_eval_variablep() {
+    lisp_init();
+    cell exp, result;
+
+    lisp_cleanup();
+}
+
+void test_eval_if() {
+    lisp_init();
+    cell exp, result;
+
+    lisp_cleanup();
+}
+void test_eval_lambda() {
+    lisp_init();
+    cell exp, result;
+
+    lisp_cleanup();
+}
+void test_eval_begin() {
+    lisp_init();
+    cell exp, result;
+
+    lisp_cleanup();
+}
+void test_eval_cond() {
+    lisp_init();
+    cell exp, result;
+
+    lisp_cleanup();
+}
+void test_eval_apply() {
+    lisp_init();
+    cell exp, result;
+
+    lisp_cleanup();
+}
 void test_eval() {
     lisp_init();
     cell exp, result;
@@ -92,6 +167,33 @@ void test_eval() {
     result = eval( exp = mkfloat(1.25), nil);
     assert_ctr(exp == result && "test_eval() :: floats should be returned");
 #endif
+
+    lisp_cleanup();
+}
+
+void test_mklist() {
+    cell exp;
+
+    exp = mklist(3, mksym("set!"), mksym("x"), mkfixnum(42));
+    assert_ctr((lisp_length(exp)) == 3 && "Should be a list of length 3");
+    assert_ctr(lisp_equals(car(exp), mksym("set!")) && "first should be symbol set!");
+    assert_ctr(lisp_equals(cadr(exp), mksym("x")) && "next should be should be symbol x");
+    assert_ctr(lisp_equals(caddr(exp), mkfixnum(42)) && "finally should be should a fixnum of 42");
+
+    exp = mklist(5, mksym("x"), mksym("y"), mksym("z"), mkfixnum(42), mkfixnum(24));
+    assert_ctr((lisp_length(exp)) == 5 && "Should be a list of length 5");
+    assert_ctr(lisp_eq(car(exp), "x") && "first should be symbol x");
+    assert_ctr(lisp_eq(cadr(exp), "y") && "first should be symbol y");
+    assert_ctr(lisp_eq(caddr(exp), "z") && "first should be symbol z");
+    assert_ctr(lisp_equals(cadddr(exp), mkfixnum(42)) && "finally should be should a fixnum of 42");
+    assert_ctr(lisp_equals(nth(exp, 5), mkfixnum(24)) && "finally should be should a fixnum of 24");
+
+
+}
+
+void test_eval_quoted() {
+    lisp_init();
+    cell exp, result;
 
     // Test for quoted expressions
     exp = mkstring("Test");
@@ -108,14 +210,6 @@ void test_eval() {
 
     lisp_cleanup();
 }
-
-void test_def_undef() {
-    lisp_init();
-
-
-    lisp_cleanup();
-}
-
 
 
 void test_equals() {
@@ -249,7 +343,7 @@ void test_lisp_quote() {
     ptr = "'A";
     exp = lisp_read(&ptr);
     assert_ctr(car(exp) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a)");
-    assert_ctr(lisp_eq(car(exp), "QUOTE") && "test_lisp_quote() :: Symbol should be a quote");
+    assert_ctr(lisp_eq(car(exp), "quote") && "test_lisp_quote() :: Symbol should be a quote");
     assert_ctr(cadr(exp) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a)");
     assert_ctr(lisp_eq(cadr(exp),"A") && "test_lisp_quote() :: Parsing should not be finished");
 
