@@ -109,7 +109,7 @@ cell list_of_values(cell exps, cell env) {
 }
 
 bool falsep(cell exp) {
-    return lisp_eq(exp, FALSE);
+    return lisp_eq(exp, FALSE) || nullp(exp);
 }
 
 bool truep(cell exp) {
@@ -146,11 +146,11 @@ cell eval_definition(cell exp, cell env) {
 }
 
 cell mkprocedure(cell parameters, cell body, cell env) {
-    return cons(mksym(PROC), cons(parameters, cons(body, env)));
+    return mklist(4, mksym(PROC), parameters, body, env);
 }
 
 cell add_binding_to_frameb(cell var, cell val, cell frame) {
-    return setcarb(frame, cons(var, car(frame)));
+    setcarb(frame, cons(var, car(frame)));
     return setcdrb(frame, cons(val, cdr(frame)));
 }
 
@@ -217,7 +217,7 @@ cell define_variableb(cell var, cell val, cell env) {
         if (nullp(vars))
             return add_binding_to_frameb(var, val, frame);
         else if (lisp_equals(var, car(vars)))
-            return setcarb(vals,val);
+            return setcarb(vals, val);
         else
             return scan(cdr(vars), cdr(vals));
     }
@@ -241,7 +241,7 @@ cell apply(cell procedure, cell arguments) {
 
 
 bool self_evaluatingp(cell exp) {
-    return (exp->type == STRING || numberp(exp));
+    return (exp->type == STRING || numberp(exp) || nullp(exp));
 }
 
 bool variablep(cell exp) {
@@ -263,8 +263,8 @@ cell definition_value(cell exp) {
 }
 
 cell if_alternate(cell exp) {
-    if (!nullp(cddr(exp)))
-        return caddr(exp);
+    if (!nullp(cdddr(exp)))
+        return cadddr(exp);
     return nil;
 }
 
@@ -408,7 +408,7 @@ cell mklist(int l, ...) {
     cell c=nil;
     cell last=nil;
     va_start(ap,l);
-    for(; l; l--) {
+    for(; l>0; l--) {
         exp = va_arg(ap, cell);
         c = cons(exp, nil);
         if (first) {
@@ -419,6 +419,7 @@ cell mklist(int l, ...) {
             last = c;
         }
     }
+    setcdrb(last, nil);
     va_end(ap);
     return list;
 }

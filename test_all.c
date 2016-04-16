@@ -65,13 +65,13 @@ int main() {
         // Actual LISP functionality
         test_cons();                    // Ensure the sanity of cons'ing
         test_eval_quoted();             // eval quoted
-        test_eval_define();             // TODO: eval definition
+        test_eval_define();             // eval definition
+        test_eval_assignment();         // eval assignment
+        test_eval_variablep();          // Evaluation of a variable (symbol lookup)
+        test_eval_if();                 // eval if
+        test_eval_lambda();             // eval lambda
+        test_eval_begin();              // eval begin
         continue;
-        test_eval_variablep();          // TODO: Evaluation of a variable (symbol lookup)
-        test_eval_assignment();         // TODO: eval assignment
-        test_eval_if();                 // TODO: eval if
-        test_eval_lambda();             // TODO: eval lambda
-        test_eval_begin();              // TODO: eval begin
         test_eval_cond();               // TODO: eval cond
         test_eval_apply();              // TODO: eval application
         test_eval();                    // Test dispatch within evaluator
@@ -92,7 +92,6 @@ int main() {
     return 0;
 }
 
-
 void test_eval_define() {
     lisp_init();
 
@@ -100,50 +99,101 @@ void test_eval_define() {
     v = mksym("x");
     define_variableb(v, mkfixnum(42), global_env);
     result = lookup_variable_value(v, global_env);
-    lisp_pprint(global_env);
     assert_ctr( lisp_equals(result, mkfixnum(42)) && "Var x == 42");
+
+    result = lookup_variable_value(mksym("true"), global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(1)) && "true should be defined");
 
     lisp_cleanup();
 }
 
 void test_eval_assignment() {
     lisp_init();
-    cell exp, result, env;
-    exp = mklist(3, mksym("set!"), mksym("myvar"), mkfixnum(10));
+    cell v, result, exp;
+    v = mksym("x");
+
+    exp = mklist(3, mksym("set!"), v, mkfixnum(10));
     result = eval(exp, global_env);
     assert_ctr(result->type == ERROR && "Cannot assign unbound variable");
 
+    define_variableb(v, mkfixnum(42), global_env);
+    result = lookup_variable_value(v, global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(42)) && "Var x == 42");
+
+    exp = mklist(3, mksym("set!"), v, mkfixnum(101));
+    result = eval(exp, global_env);
+    assert_ctr(result->type != ERROR && "Cannot assign unbound variable");
+    result = lookup_variable_value(v, global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(101)) && "Var x updated to 101");
     lisp_cleanup();
 }
 
 void test_eval_variablep() {
     lisp_init();
-    cell exp, result;
-
+    cell v, result;
+    v = mksym("x");
+    define_variableb(v, mkfixnum(42), global_env);
+    result = eval(v, global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(42)) && "Var x == 42");
+    result = eval(mksym("true"), global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(1)) && "Var x == 42");
     lisp_cleanup();
 }
 
 void test_eval_if() {
     lisp_init();
     cell exp, result;
+    exp = mklist(4, mksym(IF), mkfixnum(1), quote(mksym("YES")), quote(mksym("NO")));
+    result = eval(exp, global_env);
+    assert_ctr( lisp_eq(result, "YES") && "True path followed");
+
+    exp = mklist(3, mksym(IF), mkfixnum(1), quote(mksym("YES")));
+    result = eval(exp, global_env);
+    assert_ctr( lisp_eq(result, "YES") && "Only consequent specified, positive outcome" );
+
+    exp = mklist(4, mksym(IF), mksym(FALSE), quote(mksym("YES")), quote(mksym("NO")));
+    result = eval(exp, global_env);
+    assert_ctr( lisp_eq(result, "NO") && "False path followed" );
+
+    exp = mklist(4, mksym(IF), nil, quote(mksym("YES")), quote(mksym("NO")));
+    result = eval(exp, global_env);
+    assert_ctr( lisp_eq(result, "NO") && "False path followed" );
+
+    exp = mklist(3, mksym(IF), mksym(FALSE), quote(mksym("YES")));
+    result = eval(exp, global_env);
+    assert_ctr( nullp(result) && "Only consequent specified, negative outcome" );
 
     lisp_cleanup();
 }
 void test_eval_lambda() {
     lisp_init();
     cell exp, result;
-
+    exp = mklist(3, mksym(LAMBDA), mklist(1, mksym("x")), mksym("x"));
+    result = eval(exp, global_env);
+    assert_ctr( compound_procp(result) && "lambda returns a proc" );
     lisp_cleanup();
 }
 void test_eval_begin() {
     lisp_init();
     cell exp, result;
+    exp = mklist(2, mksym(BEGIN), quote(mksym("y")));
+    result = eval(exp, global_env);
+    assert_ctr( lisp_eq(result, "y") && "begin returns result of its contents" );
+    exp = mklist(2, mksym(BEGIN), mkfixnum(22));
+    result = eval(exp, global_env);
+    assert_ctr( fixnum(result) == 22 && "begin returns result of its contents" );
+    exp = mklist(4, mksym(BEGIN), mkfixnum(22), mkfixnum(23), mkfixnum(42));
+    result = eval(exp, global_env);
+    assert_ctr( fixnum(result) == 42 && "begin returns last result of many expressions" );
 
     lisp_cleanup();
 }
 void test_eval_cond() {
     lisp_init();
     cell exp, result;
+    exp = mklist(4, mksym(COND), mkfixnum(1), quote(mksym("YES")), quote(mksym("NO")));
+    result = eval(exp, global_env);
+    assert_ctr( lisp_eq(result, "YES") && "True path followed");
 
     lisp_cleanup();
 }
@@ -207,6 +257,12 @@ void test_eval_quoted() {
     exp = mkfixnum(345);
     result = eval( quote(exp), nil );
     assert_ctr(lisp_equals(exp, result) && "test_eval() :: quote should return the expression untouched");
+
+    exp = mkfixnum(345);
+    result = eval( quote(mklist(2, mkfixnum(6), mkfixnum(7))), nil );
+    assert_ctr(listp(result) && "test_eval() :: quote should return a list");
+    assert_ctr(lisp_equals(first(result), mkfixnum(6)) && "test_eval() :: quote should return a list");
+    assert_ctr(lisp_equals(second(result), mkfixnum(7)) && "test_eval() :: quote should return a list");
 
     lisp_cleanup();
 }

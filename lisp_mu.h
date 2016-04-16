@@ -77,6 +77,7 @@ cell nil, all_objects, the_empty_environment, global_env;
 #define caddr(A)        car(cdr(cdr(A)))
 #define caadr(A)        car(car(cdr(A)))
 #define cdadr(A)        cdr(car(cdr(A)))
+#define cdddr(A)        cdr(cdr(cdr(A)))
 #define cadddr(A)       car(cdr(cdr(cdr(A))))
 
 // Special handling of doubles
