@@ -154,8 +154,71 @@ cell add_binding_to_frameb(cell var, cell val, cell frame) {
     return setcdrb(frame, cons(val, cdr(frame)));
 }
 
+cell sum(cell parms) {
+    cell c = parms;
+    cell result = mkfixnum(0);
+    while(!nullp(c)) {
+        *(result->fixnum) += fixnum(car(c));
+        c = rest(c);
+    }
+    return result;
+}
+
+cell product(cell parms) {
+    cell c = parms;
+    cell result = mkfixnum(1);
+    while(!nullp(c)) {
+        *(result->fixnum) *= fixnum(car(c));
+        c = rest(c);
+    }
+    return result;
+}
+
+cell subtract(cell parms) {
+    cell c = parms;
+    cell result = mkfixnum(fixnum(car(parms)));
+    c = rest(c);
+    while(!nullp(c)) {
+        *(result->fixnum) -= fixnum(car(c));
+        c = rest(c);
+    }
+    return result;
+}
+
+cell divide(cell parms) {
+    cell c = parms;
+    cell result = mkfixnum(fixnum(car(parms)));
+    c = rest(c);
+    while(!nullp(c)) {
+        *(result->fixnum) /= fixnum(car(c));
+        c = rest(c);
+    }
+    return result;
+}
+
+cell primitive_procedure_names() {
+    return mklist(4,
+                  mksym("+"),
+                  mksym("-"),
+                  mksym("*"),
+                  mksym("/")
+    );
+}
+
+cell primitive_procedure_objects() {
+    return mklist(4,
+                  mkfn("+", &sum),
+                  mkfn("-", &subtract),
+                  mkfn("*", &product),
+                  mkfn("/", &divide)
+    );
+}
+
 cell setup_environment() {
-    cell initial = extend_environment(nil, nil, the_empty_environment);
+    cell initial = extend_environment(
+            primitive_procedure_names(),
+            primitive_procedure_objects(),
+            the_empty_environment);
     define_variableb(mksym("true"), mkfixnum(1), initial);
     define_variableb(mksym("false"), nil, initial);
     return initial;

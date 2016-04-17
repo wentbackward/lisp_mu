@@ -15,6 +15,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3689b297-5ecf-4621-990a-4c2713fed93a" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lisp_mu.c" afterPath="$PROJECT_DIR$/lisp_mu.c" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lisp_mu.h" afterPath="$PROJECT_DIR$/lisp_mu.h" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/test_all.c" afterPath="$PROJECT_DIR$/test_all.c" />
     </list>
@@ -54,8 +55,8 @@
       <file leaf-file-name="lisp_mu.h" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lisp_mu.h">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="225">
-              <caret line="177" column="8" selection-start-line="177" selection-start-column="8" selection-end-line="177" selection-end-column="8" />
+            <state relative-caret-position="363">
+              <caret line="237" column="0" selection-start-line="237" selection-start-column="0" selection-end-line="237" selection-end-column="0" />
               <folding>
                 <element signature="e#41#59#0" expanded="true" />
               </folding>
@@ -66,14 +67,14 @@
       <file leaf-file-name="lisp_mu.c" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lisp_mu.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="225">
-              <caret line="106" column="0" selection-start-line="106" selection-start-column="0" selection-end-line="106" selection-end-column="0" />
+            <state relative-caret-position="693">
+              <caret line="195" column="0" selection-start-line="195" selection-start-column="0" selection-end-line="195" selection-end-column="0" />
               <folding>
                 <element signature="e#156#228#0" expanded="true" />
                 <element signature="e#1218#1245#0" expanded="true" />
                 <element signature="e#1307#1700#0" expanded="true" />
                 <element signature="e#1838#1907#0" expanded="true" />
-                <element signature="e#17553#17574#0" expanded="true" />
+                <element signature="e#18888#18909#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -82,12 +83,12 @@
       <file leaf-file-name="test_all.c" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/test_all.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-190">
-              <caret line="118" column="0" selection-start-line="118" selection-start-column="0" selection-end-line="118" selection-end-column="0" />
+            <state relative-caret-position="528">
+              <caret line="161" column="0" selection-start-line="161" selection-start-column="0" selection-end-line="161" selection-end-column="0" />
               <folding>
                 <element signature="e#0#20#0" expanded="true" />
-                <element signature="e#12454#12481#0" expanded="true" />
-                <element signature="e#12715#12776#0" expanded="true" />
+                <element signature="e#15025#15052#0" expanded="true" />
+                <element signature="e#15286#15347#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -119,8 +120,8 @@
         <option value="$PROJECT_DIR$/README" />
         <option value="$PROJECT_DIR$/CMakeLists.txt" />
         <option value="$PROJECT_DIR$/uthash.h" />
-        <option value="$PROJECT_DIR$/lisp_mu.c" />
         <option value="$PROJECT_DIR$/lisp_mu.h" />
+        <option value="$PROJECT_DIR$/lisp_mu.c" />
         <option value="$PROJECT_DIR$/test_all.c" />
       </list>
     </option>
@@ -421,7 +422,7 @@
       <window_info id="CMake" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32672483" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32921812" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3297162" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3297162" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.27866778" sideWeight="0.4934911" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32921812" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5147232" order="2" side_tool="true" content_ui="tabs" />
@@ -476,13 +477,8 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/lisp_mu.c</url>
-          <line>245</line>
+          <line>308</line>
           <option name="timeStamp" value="162" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/lisp_mu.c</url>
-          <line>106</line>
-          <option name="timeStamp" value="179" />
         </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
@@ -536,7 +532,7 @@
             <element signature="e#1218#1245#0" expanded="true" />
             <element signature="e#1307#1700#0" expanded="true" />
             <element signature="e#1838#1907#0" expanded="true" />
-            <element signature="e#17553#17574#0" expanded="true" />
+            <element signature="e#18888#18909#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -547,8 +543,8 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#0#20#0" expanded="true" />
-            <element signature="e#12454#12481#0" expanded="true" />
-            <element signature="e#12715#12776#0" expanded="true" />
+            <element signature="e#15025#15052#0" expanded="true" />
+            <element signature="e#15286#15347#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -595,7 +591,7 @@
             <element signature="e#1218#1245#0" expanded="true" />
             <element signature="e#1307#1700#0" expanded="true" />
             <element signature="e#1838#1907#0" expanded="true" />
-            <element signature="e#17553#17574#0" expanded="true" />
+            <element signature="e#18888#18909#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -606,8 +602,8 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#0#20#0" expanded="true" />
-            <element signature="e#12454#12481#0" expanded="true" />
-            <element signature="e#12715#12776#0" expanded="true" />
+            <element signature="e#15025#15052#0" expanded="true" />
+            <element signature="e#15286#15347#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -654,7 +650,7 @@
             <element signature="e#1218#1245#0" expanded="true" />
             <element signature="e#1307#1700#0" expanded="true" />
             <element signature="e#1838#1907#0" expanded="true" />
-            <element signature="e#17553#17574#0" expanded="true" />
+            <element signature="e#18888#18909#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -665,8 +661,8 @@
           <caret line="48" column="0" selection-start-line="48" selection-start-column="0" selection-end-line="48" selection-end-column="0" />
           <folding>
             <element signature="e#0#20#0" expanded="true" />
-            <element signature="e#12454#12481#0" expanded="true" />
-            <element signature="e#12715#12776#0" expanded="true" />
+            <element signature="e#15025#15052#0" expanded="true" />
+            <element signature="e#15286#15347#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -713,7 +709,7 @@
             <element signature="e#1218#1245#0" expanded="true" />
             <element signature="e#1307#1700#0" expanded="true" />
             <element signature="e#1838#1907#0" expanded="true" />
-            <element signature="e#17553#17574#0" expanded="true" />
+            <element signature="e#18888#18909#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -724,8 +720,8 @@
           <caret line="48" column="0" selection-start-line="48" selection-start-column="0" selection-end-line="48" selection-end-column="0" />
           <folding>
             <element signature="e#0#20#0" expanded="true" />
-            <element signature="e#12454#12481#0" expanded="true" />
-            <element signature="e#12715#12776#0" expanded="true" />
+            <element signature="e#15025#15052#0" expanded="true" />
+            <element signature="e#15286#15347#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -772,7 +768,7 @@
             <element signature="e#1218#1245#0" expanded="true" />
             <element signature="e#1307#1700#0" expanded="true" />
             <element signature="e#1838#1907#0" expanded="true" />
-            <element signature="e#17553#17574#0" expanded="true" />
+            <element signature="e#18888#18909#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -783,8 +779,8 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#0#20#0" expanded="true" />
-            <element signature="e#12454#12481#0" expanded="true" />
-            <element signature="e#12715#12776#0" expanded="true" />
+            <element signature="e#15025#15052#0" expanded="true" />
+            <element signature="e#15286#15347#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -823,7 +819,7 @@
             <element signature="e#1218#1245#0" expanded="true" />
             <element signature="e#1307#1700#0" expanded="true" />
             <element signature="e#1838#1907#0" expanded="true" />
-            <element signature="e#17553#17574#0" expanded="true" />
+            <element signature="e#18888#18909#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -834,8 +830,8 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#0#20#0" expanded="true" />
-            <element signature="e#12454#12481#0" expanded="true" />
-            <element signature="e#12715#12776#0" expanded="true" />
+            <element signature="e#15025#15052#0" expanded="true" />
+            <element signature="e#15286#15347#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -874,7 +870,7 @@
             <element signature="e#1218#1245#0" expanded="true" />
             <element signature="e#1307#1700#0" expanded="true" />
             <element signature="e#1838#1907#0" expanded="true" />
-            <element signature="e#17553#17574#0" expanded="true" />
+            <element signature="e#18888#18909#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -885,8 +881,8 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#0#20#0" expanded="true" />
-            <element signature="e#12454#12481#0" expanded="true" />
-            <element signature="e#12715#12776#0" expanded="true" />
+            <element signature="e#15025#15052#0" expanded="true" />
+            <element signature="e#15286#15347#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -912,8 +908,8 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#0#20#0" expanded="true" />
-            <element signature="e#12454#12481#0" expanded="true" />
-            <element signature="e#12715#12776#0" expanded="true" />
+            <element signature="e#15025#15052#0" expanded="true" />
+            <element signature="e#15286#15347#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -945,14 +941,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/README">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="714">
-          <caret line="79" column="0" selection-start-line="79" selection-start-column="0" selection-end-line="79" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/uthash.h">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="24321">
@@ -976,10 +964,18 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/README">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="714">
+          <caret line="79" column="0" selection-start-line="79" selection-start-column="0" selection-end-line="79" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/lisp_mu.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
-          <caret line="177" column="8" selection-start-line="177" selection-start-column="8" selection-end-line="177" selection-end-column="8" />
+        <state relative-caret-position="363">
+          <caret line="237" column="0" selection-start-line="237" selection-start-column="0" selection-end-line="237" selection-end-column="0" />
           <folding>
             <element signature="e#41#59#0" expanded="true" />
           </folding>
@@ -988,26 +984,26 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/lisp_mu.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
-          <caret line="106" column="0" selection-start-line="106" selection-start-column="0" selection-end-line="106" selection-end-column="0" />
+        <state relative-caret-position="693">
+          <caret line="195" column="0" selection-start-line="195" selection-start-column="0" selection-end-line="195" selection-end-column="0" />
           <folding>
             <element signature="e#156#228#0" expanded="true" />
             <element signature="e#1218#1245#0" expanded="true" />
             <element signature="e#1307#1700#0" expanded="true" />
             <element signature="e#1838#1907#0" expanded="true" />
-            <element signature="e#17553#17574#0" expanded="true" />
+            <element signature="e#18888#18909#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/test_all.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-190">
-          <caret line="118" column="0" selection-start-line="118" selection-start-column="0" selection-end-line="118" selection-end-column="0" />
+        <state relative-caret-position="528">
+          <caret line="161" column="0" selection-start-line="161" selection-start-column="0" selection-end-line="161" selection-end-column="0" />
           <folding>
             <element signature="e#0#20#0" expanded="true" />
-            <element signature="e#12454#12481#0" expanded="true" />
-            <element signature="e#12715#12776#0" expanded="true" />
+            <element signature="e#15025#15052#0" expanded="true" />
+            <element signature="e#15286#15347#0" expanded="true" />
           </folding>
         </state>
       </provider>

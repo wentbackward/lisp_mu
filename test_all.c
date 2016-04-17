@@ -43,6 +43,7 @@ void test_eval_apply();
 void test_map_reduce();
 void test_make_functions();
 void test_eval_primitive();
+void test_eval_environment();
 
 int main() {
     clock_t t_start, t_end;
@@ -67,6 +68,7 @@ int main() {
 
         // Actual LISP functionality
         test_cons();                    // Ensure the sanity of cons'ing
+        test_eval();                    // Test basic dispatch within evaluator
         test_eval_quoted();             // eval quoted
         test_eval_define();             // eval definition
         test_eval_assignment();         // eval assignment
@@ -77,14 +79,15 @@ int main() {
         test_make_functions();          // Making and calling primitive functions
         test_map_reduce();              // mapper and reducer
         test_eval_apply();              // eval application
-        test_eval_primitive();          // TODO: eval then apply primitives
+        test_eval_primitive();          // eval then apply primitives
+        test_eval_environment();        // TODO: eval within various environments
         continue;
         test_eval_cond();               // TODO: eval cond
-        test_eval();                    // TODO: Test dispatch within evaluator
 
         // Libraries exposed from C
         // TODO: Maths library
         // TODO: MAXLEN bounds tests
+        // TODO: Garbace collect non referenced objects
 
     }
     stop_timer(t_end);
@@ -97,6 +100,69 @@ int main() {
         puts("Could not measure the speed, too fast");
     }
     return 0;
+}
+
+cell add_plus_one(cell params) {
+    return mkfixnum(fixnum(car(params)) + 1);
+}
+
+
+void test_eval_environment() {
+    lisp_init();
+    cell params, result;
+
+    params = mklist(2, mksym("+"), mkfixnum(3));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == 3) && "Calling + with 1 param");
+
+    params = mklist(3, mksym("+"), mkfixnum(2), mkfixnum(4));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == 6) && "Calling + with 2 params");
+
+    params = mklist(6, mksym("+"), mkfixnum(3), mkfixnum(3), mkfixnum(3), mkfixnum(3), mkfixnum(3));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == 15) && "Calling + with n params");
+
+    params = mklist(2, mksym("-"), mkfixnum(3));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == 3) && "Calling - with 1 param");
+
+    params = mklist(3, mksym("-"), mkfixnum(5), mkfixnum(2));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == 3) && "Calling - with 2 params");
+
+    params = mklist(6, mksym("-"), mkfixnum(12), mkfixnum(4), mkfixnum(4), mkfixnum(4), mkfixnum(2));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == -2) && "Calling - with n params");
+
+    params = mklist(2, mksym("*"), mkfixnum(3));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == 3) && "Calling * with 1 param");
+
+    params = mklist(3, mksym("*"), mkfixnum(5), mkfixnum(2));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == 10) && "Calling * with 2 params");
+
+    params = mklist(6, mksym("*"), mkfixnum(1), mkfixnum(2), mkfixnum(3), mkfixnum(4), mkfixnum(5));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == 120) && "Calling * with n params");
+
+    params = mklist(2, mksym("/"), mkfixnum(2));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == 2) && "Calling / with 1 param");
+
+    params = mklist(3, mksym("/"), mkfixnum(10), mkfixnum(2));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == 5) && "Calling / with 2 params");
+
+    params = mklist(6, mksym("/"), mkfixnum(120), mkfixnum(2), mkfixnum(2), mkfixnum(2), mkfixnum(3));
+    result = eval(params, global_env);
+    assert_ctr((fixnum(result) == 5) && "Calling / with n params");
+
+    // TODO override + in new environment
+    // TODO Lambda using primitives
+
+    lisp_cleanup();
 }
 
 cell adder(cell parms) {
@@ -118,6 +184,7 @@ cell moreparms(cell parms) {
 
 void test_eval_primitive() {
     lisp_init();
+
     cell params, result;
     cell v = mksym("x");
     cell plus = mkfn("+", &adder);

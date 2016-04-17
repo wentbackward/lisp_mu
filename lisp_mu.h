@@ -133,7 +133,8 @@ cell list_of_values(cell exp, cell env);
 #define primitive_call(FN, PARAMS)  primitive_fn(FN)(PARAMS)
 // FN's are C functions and should be created as primitives
 #define mkfn(SYM, FUN)  mklist(3, mksym(PRIMITIVE), mksym(SYM), lisp_alloc(FN, 0, FUN, nil))
-
+cell primitive_procedure_objects();
+cell primitive_procedure_names();
 
 // Assignment variables
 #define assignmentp(A)              tagged_listp((A), SETB)
@@ -236,6 +237,10 @@ cell find_object(cell address, cell objects);
 
 
 // Primitive features
+cell sum(cell parms);
+cell divide(cell parms);
+cell subtract(cell parms);
+cell product(cell parms);
 cell reduce(cell fn, cell list);
 cell map(cell fn, cell list);
 
