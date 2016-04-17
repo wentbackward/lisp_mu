@@ -40,11 +40,13 @@ void test_eval_lambda();
 void test_eval_begin();
 void test_eval_cond();
 void test_eval_apply();
+void test_map_reduce();
+void test_make_functions();
 
 int main() {
     clock_t t_start, t_end;
     start_timer(t_start);
-    const int iters = 10000;
+    const int iters = 1000;
     for(int i=0; i< iters ; ++i) {
 
         // General utilities
@@ -71,9 +73,11 @@ int main() {
         test_eval_if();                 // eval if
         test_eval_lambda();             // eval lambda
         test_eval_begin();              // eval begin
+        test_make_functions();          // Making and calling primitive functions
+        test_map_reduce();              // mapper and reducer
+        test_eval_apply();              // TODO: eval application
         continue;
         test_eval_cond();               // TODO: eval cond
-        test_eval_apply();              // TODO: eval application
         test_eval();                    // Test dispatch within evaluator
 
         // Libraries exposed from C
@@ -88,106 +92,106 @@ int main() {
 
     printf("Test took: %d.%ds\n", time_diff(t_start, t_end)/1000, time_diff(t_start, t_end) % 1000);
     printf("Successful Tests: %d\n", test_ctr);
-    printf("Tests per ms: %d\n", test_ctr / time_diff(t_start, t_end));
+    if (time_diff(t_start, t_end) > 0) {
+        printf("Tests per ms: %d\n", test_ctr / time_diff(t_start, t_end));
+    } else {
+        puts("Could not measure the speed, too fast");
+    }
     return 0;
 }
 
-void test_eval_define() {
+cell adder(cell parms) {
+    cell dee = first(parms);
+    cell dum = car(rest(parms));
+
+    if (nullp(rest(parms))) return mkfixnum(fixnum(dee));
+    return  mkfixnum(fixnum(dee) + fixnum(dum));
+}
+
+cell square(cell parms) {
+    cell num = car(parms);
+    return mkfixnum(fixnum(num) * fixnum(num));
+}
+
+cell moreparms(cell parms) {
+    return mkfixnum(lisp_length(parms));
+}
+
+void test_make_functions() {
     lisp_init();
+    cell plus = mkfn("+", &adder);
+    cell sqr = mkfn("square", &square);
+    cell more = mkfn("more", &moreparms);
+    cell exp, result;
 
-    cell v, result;
-    v = mksym("x");
-    define_variableb(v, mkfixnum(42), global_env);
-    result = lookup_variable_value(v, global_env);
-    assert_ctr( lisp_equals(result, mkfixnum(42)) && "Var x == 42");
+    assert_ctr(primitive_procp(plus) && "Should be a primitive");
+    assert_ctr(primitive_procp(sqr) && "Should be a primitive");
+    assert_ctr(lisp_eq(primitive_name(plus), "+") && "Name should be +");
+    assert_ctr(lisp_eq(primitive_name(sqr), "square") && "Name should be square");
 
-    result = lookup_variable_value(mksym("true"), global_env);
-    assert_ctr( lisp_equals(result, mkfixnum(1)) && "true should be defined");
+    exp = mklist(2, mkfixnum(2), mkfixnum(4));
+    result = primitive_call(plus, exp);
+    assert_ctr((fixnum(result) == 6) && "Calling plus should return correctly");
+
+    exp = mklist(1, mkfixnum(3));
+    result = primitive_call(sqr, exp);
+    assert_ctr((fixnum(result) == 9) && "Calling square should return correctly");
+
+    exp = mklist(5, mkfixnum(3), mkfixnum(3), mkfixnum(3), mkfixnum(3), mkfixnum(3));
+    result = primitive_call(more, exp);
+    assert_ctr((fixnum(result) == 5) && "Calling with n parms should work fine");
 
     lisp_cleanup();
 }
 
-void test_eval_assignment() {
-    lisp_init();
-    cell v, result, exp;
-    v = mksym("x");
-
-    exp = mklist(3, mksym("set!"), v, mkfixnum(10));
-    result = eval(exp, global_env);
-    assert_ctr(result->type == ERROR && "Cannot assign unbound variable");
-
-    define_variableb(v, mkfixnum(42), global_env);
-    result = lookup_variable_value(v, global_env);
-    assert_ctr( lisp_equals(result, mkfixnum(42)) && "Var x == 42");
-
-    exp = mklist(3, mksym("set!"), v, mkfixnum(101));
-    result = eval(exp, global_env);
-    assert_ctr(result->type != ERROR && "Cannot assign unbound variable");
-    result = lookup_variable_value(v, global_env);
-    assert_ctr( lisp_equals(result, mkfixnum(101)) && "Var x updated to 101");
-    lisp_cleanup();
-}
-
-void test_eval_variablep() {
-    lisp_init();
-    cell v, result;
-    v = mksym("x");
-    define_variableb(v, mkfixnum(42), global_env);
-    result = eval(v, global_env);
-    assert_ctr( lisp_equals(result, mkfixnum(42)) && "Var x == 42");
-    result = eval(mksym("true"), global_env);
-    assert_ctr( lisp_equals(result, mkfixnum(1)) && "Var x == 42");
-    lisp_cleanup();
-}
-
-void test_eval_if() {
+void test_map_reduce() {
     lisp_init();
     cell exp, result;
-    exp = mklist(4, mksym(IF), mkfixnum(1), quote(mksym("YES")), quote(mksym("NO")));
-    result = eval(exp, global_env);
-    assert_ctr( lisp_eq(result, "YES") && "True path followed");
+    cell plus = mkfn("+", &adder);
+    cell sqr = mkfn("square", &square);
 
-    exp = mklist(3, mksym(IF), mkfixnum(1), quote(mksym("YES")));
-    result = eval(exp, global_env);
-    assert_ctr( lisp_eq(result, "YES") && "Only consequent specified, positive outcome" );
+    exp = mklist(5, mkfixnum(2), mkfixnum(2), mkfixnum(2), mkfixnum(2), mkfixnum(2));
 
-    exp = mklist(4, mksym(IF), mksym(FALSE), quote(mksym("YES")), quote(mksym("NO")));
-    result = eval(exp, global_env);
-    assert_ctr( lisp_eq(result, "NO") && "False path followed" );
+    result = map(sqr, exp);
+    assert_ctr(lisp_length(result)    == 5 && "Map returns a list");
+    assert_ctr(fixnum(first(result))  == 4 && "first element is squared");
+    assert_ctr(fixnum(second(result)) == 4 && "first element is squared");
+    assert_ctr(fixnum(third(result))  == 4 && "first element is squared");
+    assert_ctr(fixnum(nth(result, 4)) == 4 && "first element is squared");
+    assert_ctr(fixnum(nth(result, 5)) == 4 && "first element is squared");
 
-    exp = mklist(4, mksym(IF), nil, quote(mksym("YES")), quote(mksym("NO")));
-    result = eval(exp, global_env);
-    assert_ctr( lisp_eq(result, "NO") && "False path followed" );
-
-    exp = mklist(3, mksym(IF), mksym(FALSE), quote(mksym("YES")));
-    result = eval(exp, global_env);
-    assert_ctr( nullp(result) && "Only consequent specified, negative outcome" );
+    result = reduce(plus, exp);
+    assert_ctr((fixnum(result) == 10) && "Reduce a list to a result");
 
     lisp_cleanup();
 }
-void test_eval_lambda() {
+
+void test_eval_apply() {
     lisp_init();
-    cell exp, result;
-    exp = mklist(3, mksym(LAMBDA), mklist(1, mksym("x")), mksym("x"));
-    result = eval(exp, global_env);
-    assert_ctr( compound_procp(result) && "lambda returns a proc" );
-    lisp_cleanup();
-}
-void test_eval_begin() {
-    lisp_init();
-    cell exp, result;
-    exp = mklist(2, mksym(BEGIN), quote(mksym("y")));
-    result = eval(exp, global_env);
-    assert_ctr( lisp_eq(result, "y") && "begin returns result of its contents" );
-    exp = mklist(2, mksym(BEGIN), mkfixnum(22));
-    result = eval(exp, global_env);
-    assert_ctr( fixnum(result) == 22 && "begin returns result of its contents" );
-    exp = mklist(4, mksym(BEGIN), mkfixnum(22), mkfixnum(23), mkfixnum(42));
-    result = eval(exp, global_env);
-    assert_ctr( fixnum(result) == 42 && "begin returns last result of many expressions" );
+    cell params, result;
+    cell v = mksym("x");
+    cell plus = mkfn("+", &adder);
+    cell sqr = mkfn("square", &square);
+
+    // TODO: mkprimitive(plus, &lisp_plus)
+
+    params = mklist(2, mkfixnum(1), mkfixnum(1));
+    result = apply(plus, params);
+    assert_ctr( fixnum(result) == 2 && "Applies parms to primitive");
+
+    params = mklist(4, plus, mkfixnum(1), mkfixnum(2), mkfixnum(3));
+    result = eval(params, global_env);
+    assert_ctr( fixnum(result) == 6 && "Eval applies parms to primitive");
+    
+    // define variable x, call + on x x x
+    define_variableb(v, mkfixnum(42), global_env);
+    params = mklist(3, plus, v, v);
+    result = eval(params, global_env);
+    assert_ctr( fixnum(result) == 84 && "Eval applies variable parms to primitive");
 
     lisp_cleanup();
 }
+
 void test_eval_cond() {
     lisp_init();
     cell exp, result;
@@ -197,12 +201,7 @@ void test_eval_cond() {
 
     lisp_cleanup();
 }
-void test_eval_apply() {
-    lisp_init();
-    cell exp, result;
 
-    lisp_cleanup();
-}
 void test_eval() {
     lisp_init();
     cell exp, result;
@@ -237,7 +236,6 @@ void test_mklist() {
     assert_ctr(lisp_eq(caddr(exp), "z") && "first should be symbol z");
     assert_ctr(lisp_equals(cadddr(exp), mkfixnum(42)) && "finally should be should a fixnum of 42");
     assert_ctr(lisp_equals(nth(exp, 5), mkfixnum(24)) && "finally should be should a fixnum of 24");
-
 
 }
 
@@ -565,6 +563,107 @@ void test_lisp_list() {
 
     lisp_cleanup();
 }
+
+void test_eval_define() {
+    lisp_init();
+
+    cell v, result;
+    v = mksym("x");
+    define_variableb(v, mkfixnum(42), global_env);
+    result = lookup_variable_value(v, global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(42)) && "Var x == 42");
+
+    result = lookup_variable_value(mksym("true"), global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(1)) && "true should be defined");
+
+    lisp_cleanup();
+}
+
+void test_eval_assignment() {
+    lisp_init();
+    cell v, result, exp;
+    v = mksym("x");
+
+    exp = mklist(3, mksym("set!"), v, mkfixnum(10));
+    result = eval(exp, global_env);
+    assert_ctr(result->type == ERROR && "Cannot assign unbound variable");
+
+    define_variableb(v, mkfixnum(42), global_env);
+    result = lookup_variable_value(v, global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(42)) && "Var x == 42");
+
+    exp = mklist(3, mksym("set!"), v, mkfixnum(101));
+    result = eval(exp, global_env);
+    assert_ctr(result->type != ERROR && "Cannot assign unbound variable");
+    result = lookup_variable_value(v, global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(101)) && "Var x updated to 101");
+    lisp_cleanup();
+}
+
+void test_eval_variablep() {
+    lisp_init();
+    cell v, result;
+    v = mksym("x");
+    define_variableb(v, mkfixnum(42), global_env);
+    result = eval(v, global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(42)) && "Var x == 42");
+    result = eval(mksym("true"), global_env);
+    assert_ctr( lisp_equals(result, mkfixnum(1)) && "Var x == 42");
+    lisp_cleanup();
+}
+
+void test_eval_if() {
+    lisp_init();
+    cell exp, result;
+    exp = mklist(4, mksym(IF), mkfixnum(1), quote(mksym("YES")), quote(mksym("NO")));
+    result = eval(exp, global_env);
+    assert_ctr( lisp_eq(result, "YES") && "True path followed");
+
+    exp = mklist(3, mksym(IF), mkfixnum(1), quote(mksym("YES")));
+    result = eval(exp, global_env);
+    assert_ctr( lisp_eq(result, "YES") && "Only consequent specified, positive outcome" );
+
+    exp = mklist(4, mksym(IF), mksym(FALSE), quote(mksym("YES")), quote(mksym("NO")));
+    result = eval(exp, global_env);
+    assert_ctr( lisp_eq(result, "NO") && "False path followed" );
+
+    exp = mklist(4, mksym(IF), nil, quote(mksym("YES")), quote(mksym("NO")));
+    result = eval(exp, global_env);
+    assert_ctr( lisp_eq(result, "NO") && "False path followed" );
+
+    exp = mklist(3, mksym(IF), mksym(FALSE), quote(mksym("YES")));
+    result = eval(exp, global_env);
+    assert_ctr( nullp(result) && "Only consequent specified, negative outcome" );
+
+    lisp_cleanup();
+}
+
+void test_eval_lambda() {
+    lisp_init();
+    cell exp, result;
+    exp = mklist(3, mksym(LAMBDA), mklist(1, mksym("x")), mksym("x"));
+    result = eval(exp, global_env);
+    assert_ctr( compound_procp(result) && "lambda returns a proc" );
+    lisp_cleanup();
+}
+
+void test_eval_begin() {
+    lisp_init();
+    cell exp, result;
+    exp = mklist(2, mksym(BEGIN), quote(mksym("y")));
+    result = eval(exp, global_env);
+    assert_ctr( lisp_eq(result, "y") && "begin returns result of its contents" );
+    exp = mklist(2, mksym(BEGIN), mkfixnum(22));
+    result = eval(exp, global_env);
+    assert_ctr( fixnum(result) == 22 && "begin returns result of its contents" );
+    exp = mklist(4, mksym(BEGIN), mkfixnum(22), mkfixnum(23), mkfixnum(42));
+    result = eval(exp, global_env);
+    assert_ctr( fixnum(result) == 42 && "begin returns last result of many expressions" );
+
+    lisp_cleanup();
+}
+
+
 
 /*
 

@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+//#include "uthash.h"
 
 // Generally on micro controllers, using doubles/floats will bloat the codebase, comment this to
 // remove double support at compile time
@@ -36,7 +37,7 @@ typedef long    lisp_fixnum;
 typedef char    lisp_char;
 typedef void    *any;
 enum lisp_type {
-    NIL, CONS, FIXNUM, FLOAT, STRING, SYM, ERROR
+    NIL, CONS, FIXNUM, FLOAT, STRING, SYM, ERROR, FN
 };
 
 typedef struct cell {
@@ -45,14 +46,15 @@ typedef struct cell {
     char * name;
 #endif
     struct cell *rest;
-    bool marked_for_gc;
-    size_t length;
+//    bool marked_for_gc;
+//    size_t length;
     union {
         any              data;
         struct cell     *adata;
         lisp_fixnum     *fixnum;
         lisp_char       *string;
         lisp_char       *symbol;
+        struct cell *   (*fn)(struct cell *parms);
 #ifdef WITH_FLOATING_POINT
         lisp_float      *floater;
 #endif
@@ -79,13 +81,17 @@ cell nil, all_objects, the_empty_environment, global_env;
 #define cdadr(A)        cdr(car(cdr(A)))
 #define cdddr(A)        cdr(cdr(cdr(A)))
 #define cadddr(A)       car(cdr(cdr(cdr(A))))
+#define pairp(A)        (A->type == CONS)
+#define tagged_listp(A, B)  (pairp(A) && lisp_eq(car(A), B))
+
 
 // Special handling of doubles
 #ifdef WITH_FLOATING_POINT
-#define floater(A)      *((A)->floater)
 
-cell mkfloat(lisp_float f);
-#endif
+#define     floater(A)      *((A)->floater)
+cell        mkfloat(lisp_float f);
+
+#endif  //WITH_FLOATING_POINT
 
 // Evaluation subsystem
 // See: https://mitpress.mit.edu/sicp/full-text/book/book-Z-H-26.html
@@ -122,7 +128,11 @@ cell list_of_values(cell exp, cell env);
 
 // Primitives
 #define primitive_procp(A)          tagged_listp(A, PRIMITIVE)
-#define primative_implementation(A) cadr(A)
+#define primitive_fn(A)             (caddr(A)->fn)
+#define primitive_name(A)           (cadr(A))
+#define primitive_call(FN, PARAMS)  primitive_fn(FN)(PARAMS)
+// FN's are C functions and should be created as primitives
+#define mkfn(SYM, FUN)  mklist(3, mksym(PRIMITIVE), mksym(SYM), lisp_alloc(FN, 0, FUN, nil))
 
 
 // Assignment variables
@@ -190,12 +200,10 @@ bool nullp(cell exp);
 bool listp(cell exp);
 bool numberp(cell exp);
 bool symbolp(cell exp);
-bool pairp(cell exp);
 
 // Set up and tear down of lisp environment
 void lisp_init();
 void lisp_cleanup();
-bool tagged_listp(cell exp, lisp_char *symbol);
 
 // Parsers
 cell lisp_read        (const char **);
@@ -209,22 +217,27 @@ cell last(cell list);
 cell nth(cell list, int n);
 int lisp_length(cell exp);
 
-size_t string_size(size_t chars);
 cell lisp_alloc   (enum lisp_type type, size_t length, any data, cell rest);
 void lisp_destroy (cell, cell);
-cell cons         (cell x, cell y);
-cell mkfixnum     (lisp_fixnum f);
-cell mksym        (lisp_char * exp);
-cell mknil        ();
-cell mkquote      ();
-cell mkstring     (lisp_char * str);
-cell mkerror      (const char *errmsg);
-cell quote        (cell exp);
+cell mkfixnum     (lisp_fixnum l);
+
+#define string_size(S)              (sizeof(lisp_char) * (S + 1))
+#define cons(A, B)                  lisp_alloc(CONS, lisp_sizeof(CONS), A, B)
+#define mkquote()                   mksym(QUOTE)
+#define quote(A)                    cons(mkquote(), cons(A, nil))
+#define mksym(A)                    lisp_alloc(SYM, string_size(strlen(A)), (any) A, nil)
+#define mkerror(A)                  lisp_alloc(ERROR, string_size(strlen(A)), (any) A, nil)
+#define mkstring(A)                 lisp_alloc(STRING, string_size(strlen(A)), A, nil)
 
 // Garbage Collector
 bool lisp_sweep();
 bool lisp_free(bool force_clean_all);
 cell find_object(cell address, cell objects);
+
+
+// Primitive features
+cell reduce(cell fn, cell list);
+cell map(cell fn, cell list);
 
 
 /*

@@ -225,16 +225,24 @@ cell define_variableb(cell var, cell val, cell env) {
     return scan(frame_variables(frame), frame_values(frame));
 }
 
+cell apply_primitive_proc(cell proc, cell args) {
+    //(apply-in-underlying-scheme
+    //(primitive-implementation proc) args))
+
+
+
+    return mkerror("Unknown procedure type - APPLY PRIM");
+}
 
 cell apply(cell procedure, cell arguments) {
-//    if (primitive_procp(procedure)) {
-//        return apply_primitive_proc(procedure, arguments);
+    if (primitive_procp(procedure)) {
+        return primitive_call(procedure, arguments);
 //    } else if (compound_procp(procedure)) {
 //        return eval_sequence(
 //                procedure_body(procedure),
 //                (extend_environment(procedure_parameters(procedure),
 //                  arguments, procedure_environment(procedure))));
-//    }
+    }
     return mkerror("Unknown procedure type - APPLY");
 }
 
@@ -395,6 +403,7 @@ bool lisp_eq(cell lhs, any rhs) {
             break;
 #endif
         case CONS:
+        case FN:
             result = (lhs == rhs);
     }
     return result;
@@ -450,6 +459,7 @@ bool lisp_equals(cell lhs, cell rhs) {
             result = ( strcmp(symbol(lhs), symbol(rhs)) == 0 );
             break;
         case CONS:
+        case FN:
             result = ( lhs == rhs );
     }
     return result;
@@ -465,8 +475,8 @@ bool lisp_equals(cell lhs, cell rhs) {
 cell primary_alloc(enum lisp_type type, size_t length, any data, cell rest) {
     cell result = calloc(1, sizeof(lisp_cell));
     result->type = type;
-    result->marked_for_gc = false;
-    result->length = length;
+//    result->marked_for_gc = false;
+//    result->length = length;
     result->data = data;
     result->rest = rest;
 
@@ -476,26 +486,33 @@ cell primary_alloc(enum lisp_type type, size_t length, any data, cell rest) {
 cell lisp_alloc(enum lisp_type type, size_t length, any data, cell rest) {
     cell result = primary_alloc(type, length, data, rest);
 
-    if (length == 0 || data == NULL || data == nil) {
-        result->data = nil;
-        result->length = lisp_sizeof(CONS);
-    } else {
-        switch (type) {
-            case NIL:
-            case CONS:
-                break;
-            case FIXNUM:
-            case FLOAT:
-            case STRING:
-            case SYM:
-            case ERROR: {
-                any ptr = malloc(length);
-                memcpy(ptr, data, length);
-                result->data = ptr;
-                break;
+    switch (type) {
+        case FN:
+            result->data = data;
+            break;
+        default:
+            if (length == 0 || data == NULL || data == nil) {
+                result->data = nil;
+//              result->length = lisp_sizeof(CONS);
+            } else {
+                switch (type) {
+                    case FIXNUM:
+                    case FLOAT:
+                    case STRING:
+                    case SYM:
+                    case ERROR: {
+                        any ptr = malloc(length);
+                        memcpy(ptr, data, length);
+                        result->data = ptr;
+                        break;
+                    default:
+                        break;
+                    }
+                }
             }
-        }
+            break;
     }
+
 
     if (rest == NULL)
         result->rest = nil;
@@ -512,8 +529,15 @@ bool destroy_aux(cell exp, cell objects, cell last) {
 
     // Is the first element of `objects' the cell we're looking for?
     if (car(objects) == exp) {
-        if (exp->type != CONS && exp->type != NIL)
-            free(exp->data);
+        switch (exp->type) {
+            case NIL:
+            case CONS:
+            case FN:
+                break;
+            default:
+                free(exp->data);
+                break;
+        }
         free(exp);                  // Free the thing we're looking for
 
         if (objects == last) {
@@ -539,18 +563,6 @@ void lisp_destroy(cell exp, cell objects) {
 
     destroy_aux(exp, objects, objects);
 }
-
-size_t string_size(size_t chars) { return sizeof(lisp_char) * (chars + 1); }
-cell cons(cell x, cell y)           { return lisp_alloc(CONS, lisp_sizeof(CONS), x, y); }
-cell mkfixnum(lisp_fixnum l)        { return lisp_alloc(FIXNUM, sizeof(lisp_fixnum), &l, nil); }
-cell mksym(lisp_char * exp)         { return lisp_alloc(SYM, string_size(strlen(exp)), (any) exp, nil); }
-cell mkerror(const char *errmsg)    { return lisp_alloc(ERROR, string_size(strlen(errmsg)), (any) errmsg, nil); }
-cell mkstring(lisp_char * str)      { return lisp_alloc(STRING, string_size(strlen(str)), str, nil); }
-cell mkquote()                      { return mksym(QUOTE);}
-cell quote(cell exp)                { return cons(mkquote(), cons(exp, nil)); }
-#ifdef WITH_FLOATING_POINT
-cell mkfloat(lisp_float f) { return lisp_alloc(FLOAT, sizeof(lisp_float), &f, nil); }
-#endif
 
 cell lisp_read_list(const char **buf) {
     cell last = nil;
@@ -610,8 +622,6 @@ cell lisp_read_list(const char **buf) {
 
     return mkerror(ERR_LISTNOTTERMINATED);
 }
-
-
 
 cell lisp_read_symbol(const char **buf) {
     cell result;
@@ -739,14 +749,6 @@ void lisp_cleanup() {
     free(nil);
 }
 
-bool pairp(cell exp) {
-    return(exp->type == CONS);
-}
-
-bool tagged_listp(cell exp, lisp_char *symbol) {
-    return (pairp(exp) && lisp_eq(car(exp), symbol));
-}
-
 size_t lisp_sizeof(enum lisp_type type) {
     size_t result = 0;
 
@@ -770,6 +772,51 @@ size_t lisp_sizeof(enum lisp_type type) {
         case NIL:
             result = 0;
             break;
+        case FN:
+            result = 0;
+            break;
+    }
+    return result;
+}
+
+cell mkfixnum(lisp_fixnum A)        { return lisp_alloc(FIXNUM, sizeof(lisp_fixnum), &A, nil); }
+#ifdef WITH_FLOATING_POINT
+cell mkfloat(lisp_float f) { return lisp_alloc(FLOAT, sizeof(lisp_float), &f, nil); }
+#endif
+
+
+/*
+ * Primitives features
+ */
+cell map(cell fn, cell list) {
+    cell c = list;
+    cell result = nil;
+    cell last = nil;
+    cell tmp = nil;
+    while(!nullp(c)) {
+        if (primitive_procp(fn)) {
+            tmp = cons(primitive_call(fn, c), nil);
+        }
+        if (nullp(result)) {
+            last = result = tmp;
+        } else {
+            setcdrb(last, tmp);
+            last = tmp;
+        }
+        c = cdr(c);
+    }
+    return result;
+}
+
+cell reduce(cell fn, cell list) {
+    cell c = list;
+    cell result = nil;
+    while(true) {
+        if (primitive_procp(fn)) {
+            result = primitive_call(fn, c);
+        }
+        if (nullp(cdr(c))) break;
+        c = cons(result, cddr(c));
     }
     return result;
 }
@@ -784,7 +831,7 @@ void lisp_print_list_aux(cell i, int depth) {
     bool first = true;
     cell ptr = i;
     sep();
-    if (listp(i) && depth > 0) {
+    if (listp(i)) {
         printf("(");
     }
     while(!nullp(ptr)) {
@@ -807,7 +854,7 @@ void lisp_print_list_aux(cell i, int depth) {
                 printf("<#STRING: \"%s\">", e->string);
                 break;
             case FIXNUM:
-                printf("<#FIXNUM: %d>", (int) fixnum(e));
+                printf("<#FIXNUM: %li>", fixnum(e));
                 break;
 #ifdef WITH_FLOATING_POINT
             case FLOAT:
@@ -820,6 +867,9 @@ void lisp_print_list_aux(cell i, int depth) {
             case ERROR:
                 printf("<#ERROR: \"%s\">", e->string);
                 break;
+            case FN:
+                printf("<#FN: %li>", (long)e);
+                break;
         }
         ptr = rest(ptr);
     }
@@ -828,3 +878,5 @@ void lisp_print_list_aux(cell i, int depth) {
         printf(")");
     }
 }
+
+
