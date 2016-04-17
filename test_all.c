@@ -42,6 +42,7 @@ void test_eval_cond();
 void test_eval_apply();
 void test_map_reduce();
 void test_make_functions();
+void test_eval_primitive();
 
 int main() {
     clock_t t_start, t_end;
@@ -75,16 +76,14 @@ int main() {
         test_eval_begin();              // eval begin
         test_make_functions();          // Making and calling primitive functions
         test_map_reduce();              // mapper and reducer
-        test_eval_apply();              // TODO: eval application
+        test_eval_apply();              // eval application
+        test_eval_primitive();          // TODO: eval then apply primitives
         continue;
         test_eval_cond();               // TODO: eval cond
-        test_eval();                    // Test dispatch within evaluator
+        test_eval();                    // TODO: Test dispatch within evaluator
 
         // Libraries exposed from C
         // TODO: Maths library
-        // test_sum_int();
-        // test_sum_double();
-
         // TODO: MAXLEN bounds tests
 
     }
@@ -115,6 +114,28 @@ cell square(cell parms) {
 
 cell moreparms(cell parms) {
     return mkfixnum(lisp_length(parms));
+}
+
+void test_eval_primitive() {
+    lisp_init();
+    cell params, result;
+    cell v = mksym("x");
+    cell plus = mkfn("+", &adder);
+    cell ad = mksym("+");
+    cell sqr = mkfn("square", &square);
+    define_variableb(ad, plus, global_env);
+
+    params = mklist(3, ad, mkfixnum(1), mkfixnum(2));
+    result = eval(params, global_env);
+    assert_ctr( fixnum(result) == 3 && "Eval applies parms to primitive");
+
+    // define variable x, call + on x x x
+    define_variableb(v, mkfixnum(42), global_env);
+    params = mklist(3, ad, v, v);
+    result = eval(params, global_env);
+    assert_ctr( fixnum(result) == 84 && "Eval applies variable parms to primitive");
+
+    lisp_cleanup();
 }
 
 void test_make_functions() {
@@ -172,23 +193,19 @@ void test_eval_apply() {
     cell v = mksym("x");
     cell plus = mkfn("+", &adder);
     cell sqr = mkfn("square", &square);
-
-    // TODO: mkprimitive(plus, &lisp_plus)
+    cell more = mkfn("more", &moreparms);
 
     params = mklist(2, mkfixnum(1), mkfixnum(1));
     result = apply(plus, params);
-    assert_ctr( fixnum(result) == 2 && "Applies parms to primitive");
+    assert_ctr(fixnum(result) == 2 && "Applies 2 parms to primitive");
 
-    params = mklist(4, plus, mkfixnum(1), mkfixnum(2), mkfixnum(3));
-    result = eval(params, global_env);
-    assert_ctr( fixnum(result) == 6 && "Eval applies parms to primitive");
-    
-    // define variable x, call + on x x x
-    define_variableb(v, mkfixnum(42), global_env);
-    params = mklist(3, plus, v, v);
-    result = eval(params, global_env);
-    assert_ctr( fixnum(result) == 84 && "Eval applies variable parms to primitive");
+    params = mklist(1, mkfixnum(3));
+    result = apply(sqr, params);
+    assert_ctr(fixnum(result) == 9 && "Applies 1 parm to primitive");
 
+    params = mklist(5, mkfixnum(2), mkfixnum(2), mkfixnum(2), mkfixnum(2), mkfixnum(2));
+    result = apply(more, params);
+    assert_ctr(fixnum(result) == 5 && "Applies n parm to primitive");
     lisp_cleanup();
 }
 
@@ -662,21 +679,3 @@ void test_eval_begin() {
 
     lisp_cleanup();
 }
-
-
-
-/*
-
-
-void test_sum_double() {
-#ifdef WITH_FLOATING_POINT
-    assert_ctr( (sum_double(2, 15.5, 56.6) == 72.1) && "test_sum_double() :: sums two doubles" );
-    ++tests_run;
-#endif
-}
-
-void test_sum_int() {
-    assert_ctr((sum_int(2, 15, 56) == 71) && "test_sum_int() :: sums two ints" );
-    ++tests_run;
-}
-*/

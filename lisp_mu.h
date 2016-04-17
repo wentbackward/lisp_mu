@@ -239,40 +239,4 @@ cell find_object(cell address, cell objects);
 cell reduce(cell fn, cell list);
 cell map(cell fn, cell list);
 
-
-/*
-#ifdef WITH_FLOATING_POINT
-double sum_double(int numargs, ...);
-#endif
-*/
-
-
-
-/*
-int sum_int(int numargs, ...) {
-    va_list ap;
-    int result = 0;
-    va_start(ap, numargs);
-    for (int i = 0; i < numargs; ++i)
-        result += va_arg(ap, int);
-    va_end(ap);
-    return result;
-}
-
-#ifdef WITH_FLOATING_POINT
-
-double sum_double(int numargs, ...) {
-    va_list ap;
-    double result = 0;
-    va_start(ap, numargs);
-    for (int i = 0; i < numargs; ++i)
-        result += va_arg(ap, double);
-    va_end(ap);
-    return result;
-}
-
-#endif
-
- */
-
 #endif // __LISP_MU__
