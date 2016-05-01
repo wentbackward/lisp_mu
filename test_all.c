@@ -1,4 +1,5 @@
 #include "lisp_mu.h"
+#include <stdio.h>
 #include "tinyprintf.h"
 #include <assert.h>
 #include <time.h>
@@ -53,7 +54,15 @@ void test_read_eval3();
 
 void print_global_env();
 
+
+void my_putc( void* p, char c) {
+    putc(c, stdout);
+    fflush(stdout);
+}
+
 int main() {
+    init_printf(NULL, my_putc);
+
     clock_t t_start, t_end;
     start_timer(t_start);
     const int iters = 1000;
