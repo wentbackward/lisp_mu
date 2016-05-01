@@ -1,10 +1,13 @@
 #include "lisp_mu.h"
+#include "tinyprintf.h"
 #include <assert.h>
 #include <time.h>
 
+#define STR(...) #__VA_ARGS__
+
 // Testing helpers
 int test_ctr = 0;
-#define assert_ctr(_exp)   test_ctr++; assert(_exp)
+#define assert_ctr(_exp)    test_ctr++; assert(_exp)
 #define start_timer(S)      S = clock()
 #define stop_timer(E)       E = clock()
 #define time_diff(S, E)     ((int)((E - S) * 1000 / CLOCKS_PER_SEC))
@@ -44,6 +47,11 @@ void test_map_reduce();
 void test_make_functions();
 void test_eval_primitive();
 void test_eval_environment();
+void test_read_eval();
+void test_read_eval2();
+void test_read_eval3();
+
+void print_global_env();
 
 int main() {
     clock_t t_start, t_end;
@@ -80,7 +88,12 @@ int main() {
         test_map_reduce();              // mapper and reducer
         test_eval_apply();              // eval application
         test_eval_primitive();          // eval then apply primitives
-        test_eval_environment();        // TODO: eval within various environments
+        test_eval_environment();
+
+        test_read_eval();               // operators +,-,*,/ and defining functions using them
+        test_read_eval2();              // =, multiple defines and recursion
+        test_read_eval3();              // Even more primitives
+
         continue;
         test_eval_cond();               // TODO: eval cond
 
@@ -97,15 +110,136 @@ int main() {
     if (time_diff(t_start, t_end) > 0) {
         printf("Tests per ms: %d\n", test_ctr / time_diff(t_start, t_end));
     } else {
-        puts("Could not measure the speed, too fast");
+        printf("Could not measure the speed, too fast\n");
     }
     return 0;
 }
 
-cell add_plus_one(cell params) {
-    return mkfixnum(fixnum(car(params)) + 1);
+
+void test_read_eval2() {
+    lisp_init();
+    cell exp, result;
+    const char * prog;
+
+    prog = "(= 1 1)";
+    exp = lisp_read(&prog);
+    result = eval(exp, global_env);
+    assert_ctr((!nullp(result)) && "Can check for equality of numbers");
+
+    prog = "(= 1 2)";
+    exp = lisp_read(&prog);
+    result = eval(exp, global_env);
+    assert_ctr((nullp(result)) && "Can check for inequality of numbers");
+
+    prog = "(= 'x 'x)";
+    exp = lisp_read(&prog);
+    result = eval(exp, global_env);
+    assert_ctr((!nullp(result)) && "Can check for equality of symbols");
+
+    prog = "(= 'x 'y)";
+    exp = lisp_read(&prog);
+    result = eval(exp, global_env);
+    assert_ctr((nullp(result)) && "Can check for inequality of symbols");
+
+    prog = STR(
+            (begin
+                    (define (square x)
+                       (* x x))
+                    (define (sum-of-squares x y)
+                       (+ (square x) (square y)))
+                    (define (f a)
+                       (sum-of-squares (+ a 1) (+ a 2)))
+                    (f 5))
+    );
+    exp = lisp_read(&prog);
+    result = eval(exp, global_env);
+    assert_ctr(fixnum(result) == 85 && "Multiple definitions");
+
+    //                         (print "f " n ", ")
+    prog = STR(
+            (begin
+                    (define (factorial n)
+                        (if (= n 1)
+                            1
+                            (* n (factorial (- n 1)))))
+                    (factorial 5))
+    );
+    exp = lisp_read(&prog);
+    result = eval(exp, global_env);
+    assert_ctr(fixnum(result) == 120 && "Handles recursion");
+
+    lisp_cleanup();
 }
 
+void test_read_eval3() {
+    lisp_init();
+    cell exp, result;
+    const char * prog;
+
+    // TODO: Leaving this until I have a strategy on floats
+
+//    prog = STR(
+//            (define (sqrt x)
+//                (define (good-enough? guess)
+//                   (< (abs (- (square guess) x)) 0.001))
+//                (define (improve guess)
+//                    (average guess (/ x guess)))
+//                (define (sqrt-iter guess)
+//                    (if (good-enough? guess)
+//                        guess
+//                        (sqrt-iter (improve guess))))
+//                (sqrt-iter 1.0))
+//            (sqrt 18)
+//    );
+//    exp = lisp_read(&prog);
+//    result = eval(exp, global_env);
+//    assert_ctr(fixnum(result) == 4 && "sqrt with nested defines");
+
+    lisp_cleanup();
+}
+
+void test_read_eval() {
+    lisp_init();
+    cell exp, result;
+    const char * prog;
+
+    prog = "1";
+    result = eval(lisp_read(&prog), global_env);
+    assert_ctr(fixnum(result) == 1 && "We can read a raw integer");
+
+    prog = "'K";
+    result = eval(lisp_read(&prog), global_env);
+    assert_ctr(result->type == SYM && lisp_eq(result, "K") && "We can read a symbol");
+
+    prog = "(+ 1 2 3)";
+    result = eval(lisp_read(&prog), global_env);
+    assert_ctr(fixnum(result) == 6 && "We can execute a primitive");
+
+    prog = "(* 1 2 3)";
+    result = eval(lisp_read(&prog), global_env);
+    assert_ctr(fixnum(result) == 6 && "We can execute a primitive");
+
+    prog = "(begin (define x 100) x)";
+    result = eval(lisp_read(&prog), global_env);
+    assert_ctr(fixnum(result) == 100 && "We can lookup a variable value");
+
+    prog = "x";
+    result = eval(lisp_read(&prog), global_env);
+    assert_ctr(fixnum(result) == 100 && "We can lookup a previously defined variable");
+
+    prog = STR(
+            (begin
+                    (define (sqr y)
+                        (* y y))
+                    (sqr 5))
+    );
+    exp = lisp_read(&prog);
+
+    result = eval(exp, global_env);
+    assert_ctr(fixnum(result) == 25 && "We can define a function and use it");
+
+    lisp_cleanup();
+}
 
 void test_eval_environment() {
     lisp_init();
@@ -158,9 +292,6 @@ void test_eval_environment() {
     params = mklist(6, mksym("/"), mkfixnum(120), mkfixnum(2), mkfixnum(2), mkfixnum(2), mkfixnum(3));
     result = eval(params, global_env);
     assert_ctr((fixnum(result) == 5) && "Calling / with n params");
-
-    // TODO override + in new environment
-    // TODO Lambda using primitives
 
     lisp_cleanup();
 }
@@ -475,7 +606,7 @@ void test_lisp_float() {
 
 void test_lisp_quote() {
     lisp_init();
-    cell exp;
+    cell exp, exp1;
     const char *ptr;
 
     ptr = "'A";
@@ -484,6 +615,40 @@ void test_lisp_quote() {
     assert_ctr(lisp_eq(car(exp), "quote") && "test_lisp_quote() :: Symbol should be a quote");
     assert_ctr(cadr(exp) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a)");
     assert_ctr(lisp_eq(cadr(exp),"A") && "test_lisp_quote() :: Parsing should not be finished");
+
+    ptr = "'(A)";
+    exp = lisp_read(&ptr);
+    assert_ctr(car(exp) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a)");
+    assert_ctr(lisp_eq(car(exp), "quote") && "test_lisp_quote() :: Symbol should be a quote");
+    assert_ctr(listp(cadr(exp)));
+    assert_ctr(caadr(exp) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a)");
+    assert_ctr(lisp_eq(caadr(exp),"A") && "test_lisp_quote() :: Parsing should not be finished");
+
+    ptr = "'(A A)";
+    exp = lisp_read(&ptr);
+    assert_ctr(car(exp) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a a)");
+    assert_ctr(lisp_eq(car(exp), "quote") && "test_lisp_quote() :: Symbol should be a quote");
+    assert_ctr(listp(cadr(exp)));
+    assert_ctr(caadr(exp) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a a)");
+    assert_ctr(lisp_eq(caadr(exp),"A") && "test_lisp_quote() :: Parsing should not be finished");
+    assert_ctr(cadadr(exp) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a a)");
+    assert_ctr(lisp_eq(cadadr(exp),"A") && "test_lisp_quote() :: Parsing should not be finished");
+
+    ptr = "('A 'B)";
+    exp = lisp_read(&ptr);
+    assert_ctr(listp(car(exp)));
+
+    exp1 = car(exp);
+    assert_ctr(car(exp1) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a)");
+    assert_ctr(lisp_eq(car(exp1), "quote") && "test_lisp_quote() :: Symbol should be a quote");
+    assert_ctr(cadr(exp1) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a)");
+    assert_ctr(lisp_eq(cadr(exp1), "A") && "test_lisp_quote() :: Symbol should be a quote");
+
+    exp1 = cadr(exp);
+    assert_ctr(car(exp1) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a)");
+    assert_ctr(lisp_eq(car(exp1), "quote") && "test_lisp_quote() :: Symbol should be a quote");
+    assert_ctr(cadr(exp1) -> type == SYM && "test_lisp_quote() :: should return a quoted symbol (quote a)");
+    assert_ctr(lisp_eq(cadr(exp1), "B") && "test_lisp_quote() :: Symbol should be a quote");
 
     lisp_cleanup();
 }

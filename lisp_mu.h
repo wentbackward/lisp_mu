@@ -1,13 +1,8 @@
 #ifndef __LISP_MU__
 #define __LISP_MU__
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <ctype.h>
-//#include "uthash.h"
 
 // Generally on micro controllers, using doubles/floats will bloat the codebase, comment this to
 // remove double support at compile time
@@ -16,18 +11,18 @@
 
 #define MAXLEN 256  // max length of strings and symbols
 
-#define QUOTE       "quote"
-#define SETB        "set!"
-#define DEFINE      "define"
-#define LAMBDA      "lambda"
-#define IF          "if"
-#define BEGIN       "begin"
-#define COND        "cond"
-#define ELSE        "else"
-#define FALSE       "false"
-#define OK          "ok"
-#define PROC        "procedure"
-#define PRIMITIVE   "primitive"
+static char *const  T          = "T";
+static char *const  QUOTE      = "quote";
+static char *const  SETB       = "set!";
+static char *const  DEFINE     = "define";
+static char *const  LAMBDA     = "lambda";
+static char *const  IF         = "if";
+static char *const  BEGIN      = "begin";
+static char *const  COND       = "cond";
+static char *const  ELSE       = "else";
+static char *const  FALSE      = "false";
+static char *const  PROC       = "procedure";
+static char *const  PRIMITIVE  = "primitive";
 
 // Here you can affect the underlying data types used in the lisp system
 #ifdef WITH_FLOATING_POINT
@@ -61,7 +56,10 @@ typedef struct cell {
     };
 } lisp_cell, *cell;
 
-cell nil, all_objects, the_empty_environment, global_env;
+cell nil, all_objects, the_empty_environment, global_env, lisp_true, lisp_if,
+        lisp_begin, procedure;
+
+#define N_ELEMENTS(array) (sizeof(array)/sizeof(cell))
 
 // Accessors
 #define fixnum(A)       *((A)->fixnum)
@@ -78,10 +76,15 @@ cell nil, all_objects, the_empty_environment, global_env;
 #define cddr(A)         cdr(cdr(A))
 #define caddr(A)        car(cdr(cdr(A)))
 #define caadr(A)        car(car(cdr(A)))
+#define caar(A)         car(car(A))
+#define caaddr(A)       car(car(cdr(cdr(A))))
+#define caaadr(A)       car(car(car(cdr(A))))
+#define cadadr(A)       car(cdr(car(cdr(A))))
 #define cdadr(A)        cdr(car(cdr(A)))
 #define cdddr(A)        cdr(cdr(cdr(A)))
 #define cadddr(A)       car(cdr(cdr(cdr(A))))
 #define pairp(A)        (A->type == CONS)
+#define errorp(A)       (A->type == ERROR)
 #define tagged_listp(A, B)  (pairp(A) && lisp_eq(car(A), B))
 
 
@@ -105,6 +108,8 @@ cell eval_sequence(cell exps, cell env);
 cell eval_assignment(cell exp, cell env);
 cell eval_definition(cell exp, cell env);
 cell mklist(int l, ...);
+cell mklist_from_array(size_t l, cell arr[]);
+
 
 // Environment
 #define enclosing_environment(A)    cdr(A)

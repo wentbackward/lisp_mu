@@ -1,4 +1,8 @@
 #include "lisp_mu.h"
+#include "tinyprintf.h"
+#include <stdlib.h>
+#include <ctype.h>
+
 
 const char * ERR_SYMTOOLONG = "Symbol length too long";
 const char * ERR_LISTNOTTERMINATED = "List was not terminated";
@@ -14,7 +18,7 @@ char * types[] = {"NIL","CONS","FIXNUM","FLOAT","STRING","SYM","ERROR"};
  * ----------------------------------------------------------------------
  * The garbage collect uses the following algo:
  * 1. All list objects are stored in a single list `all_objects'
- * 2. Sweep will scan `all_symbols'
+ * 2. Sweep will scan_aux `all_symbols'
  * 3. recursively mark referenced objects as accessible
  * 4. All unmarked objects as inaccessible and thus can be reclaimed
  *
@@ -83,6 +87,7 @@ cell find_object(cell address, cell objects) {
  */
 
 cell eval(cell exp, cell env) {
+    if (errorp(exp))            return exp;
     if (self_evaluatingp(exp))  return exp;
     if (variablep(exp))         return lookup_variable_value(exp, env);
     if (quotedp(exp))           return cadr(exp);
@@ -137,16 +142,16 @@ cell eval_assignment(cell exp, cell env) {
     if (result -> type == ERROR)
         return result;
     else
-        return mksym(OK);
+        return lisp_true;
 }
 
 cell eval_definition(cell exp, cell env) {
     define_variableb(definition_variable(exp), eval(definition_value(exp), env), env);
-    return mksym(OK);
+    return lisp_true;
 }
 
 cell mkprocedure(cell parameters, cell body, cell env) {
-    return mklist(4, mksym(PROC), parameters, body, env);
+    return mklist(4, procedure, parameters, body, env);
 }
 
 cell add_binding_to_frameb(cell var, cell val, cell frame) {
@@ -196,22 +201,81 @@ cell divide(cell parms) {
     return result;
 }
 
+cell equals(cell parms) {
+    cell lhs = first(parms);
+    cell rhs = second(parms);
+    if (lhs == rhs) return lisp_true;
+    switch (lhs->type) {
+        case NIL:
+            if (rhs->type == NIL) return lisp_true;
+            break;
+        case FIXNUM:
+            if (rhs->type == FIXNUM && fixnum(lhs) == fixnum(rhs)) return lisp_true;
+            break;
+#ifdef WITH_FLOATING_POINT
+        case FLOAT:break;
+#endif
+        case STRING:
+        case SYM:
+        case ERROR:
+            if (lisp_equals(lhs, rhs)) return lisp_true;
+        case CONS:break;
+        case FN:break;
+    }
+    return nil;
+}
+
+cell printer(cell params) {
+    cell c = params;
+    while(!nullp(c)) {
+        cell val = car(c);
+        switch (val->type) {
+            case NIL: printf("NIL"); break;
+            case FIXNUM: printf("%li", fixnum(val)); break;
+#ifdef WITH_FLOATING_POINT
+            case FLOAT: printf("%f", floater(val)); break;
+#endif
+            case SYM:
+                printf("<#SYM: %s>", symbol(val));
+                break;
+            case STRING:
+            case ERROR:
+                printf(val->string);
+                break;
+            case FN:
+            case CONS:
+                printf("<?>");
+                break;
+        }
+        c = rest(c);
+    }
+    return nil;
+}
+
 cell primitive_procedure_names() {
-    return mklist(4,
-                  mksym("+"),
-                  mksym("-"),
-                  mksym("*"),
-                  mksym("/")
-    );
+    cell c[] = {
+            mksym("+"),
+            mksym("-"),
+            mksym("*"),
+            mksym("/"),
+            mksym("="),
+            mksym("print")
+    };
+
+    return mklist_from_array(N_ELEMENTS(c), c);
 }
 
 cell primitive_procedure_objects() {
-    return mklist(4,
-                  mkfn("+", &sum),
-                  mkfn("-", &subtract),
-                  mkfn("*", &product),
-                  mkfn("/", &divide)
-    );
+    cell c[] = {
+            mkfn("+", &sum),
+            mkfn("-", &subtract),
+            mkfn("*", &product),
+            mkfn("/", &divide),
+            mkfn("=", &equals),
+            mkfn("print", &printer)
+    };
+
+    return mklist_from_array(N_ELEMENTS(c), c);
 }
 
 cell setup_environment() {
@@ -233,44 +297,51 @@ cell extend_environment(cell vars, cell vals, cell base_env) {
         return mkerror("Too few arguments supplied -- EXTEND_ENVIRONMENT");
 }
 
-cell lookup_variable_value(cell var, cell env) {
-    cell env_loop(cell nenv) {
-        cell scan(cell vars, cell vals) {
-            if (nullp(vars))
-                return env_loop(enclosing_environment(nenv));
-            else if (lisp_equals(var, car(vars)))
-                return car(vals);
-            else
-                return scan(cdr(vars), cdr(vals));
-        }
-        if (nenv == the_empty_environment)
-            return mkerror("Unbound Variable -- lookup_variable_value");
-        else {
-            cell frame = first_frame(nenv);
-            return scan(frame_variables(frame), frame_values(frame));
-        }
+
+cell env_loop(cell env, cell var);
+cell env_loop2(cell env, cell var, cell val);
+cell scan_aux(cell vars, cell vals, cell var, cell env) {
+    if (nullp(vars))
+        return env_loop(enclosing_environment(env), var);
+    else if (lisp_equals(var, car(vars)))
+        return car(vals);
+    else
+        return scan_aux(cdr(vars), cdr(vals), var, env);
+}
+
+cell scan_aux2(cell vars, cell vals, cell var, cell val, cell env) {
+    if (nullp(vars))
+        return env_loop(enclosing_environment(env), var);
+    else if (lisp_equals(var, car(vars)))
+        return setcarb(vals, val);
+    else
+        return scan_aux2(cdr(vars), cdr(vals), var, val, env);
+}
+
+cell env_loop(cell env, cell var) {
+    if (env == the_empty_environment)
+        return mkerror("Unbound Variable -- lookup_variable_value");
+    else {
+        cell frame = first_frame(env);
+        return scan_aux(frame_variables(frame), frame_values(frame), var, env);
     }
-    return env_loop(env);
+}
+
+cell env_loop2(cell env, cell var, cell val) {
+    if (env == the_empty_environment)
+        return mkerror("Unbound Variable -- set_variable_valueb");
+    else {
+        cell frame = first_frame(env);
+        return scan_aux2(frame_variables(frame), frame_values(frame), var, val, env);
+    }
+}
+
+cell lookup_variable_value(cell var, cell env) {
+    return env_loop(env, var);
 }
 
 cell set_variable_valueb(cell var, cell val, cell env) {
-    cell env_loop(cell nenv) {
-        cell scan(cell vars, cell vals) {
-            if (nullp(vars))
-                return env_loop(enclosing_environment(nenv));
-            else if (lisp_equals(var, car(vars)))
-                return setcarb(vals, val);
-            else
-                return scan(cdr(vars), cdr(vals));
-        }
-        if (nenv == the_empty_environment)
-            return mkerror("Unbound Variable -- set_variable_valueb");
-        else {
-            cell frame = first_frame(nenv);
-            return scan(frame_variables(frame), frame_values(frame));
-        }
-    }
-    return env_loop(env);
+    return env_loop2(env, var, val);
 }
 
 cell define_variableb(cell var, cell val, cell env) {
@@ -288,28 +359,17 @@ cell define_variableb(cell var, cell val, cell env) {
     return scan(frame_variables(frame), frame_values(frame));
 }
 
-cell apply_primitive_proc(cell proc, cell args) {
-    //(apply-in-underlying-scheme
-    //(primitive-implementation proc) args))
-
-
-
-    return mkerror("Unknown procedure type - APPLY PRIM");
-}
-
 cell apply(cell procedure, cell arguments) {
     if (primitive_procp(procedure)) {
         return primitive_call(procedure, arguments);
-//    } else if (compound_procp(procedure)) {
-//        return eval_sequence(
-//                procedure_body(procedure),
-//                (extend_environment(procedure_parameters(procedure),
-//                  arguments, procedure_environment(procedure))));
+    } else if (compound_procp(procedure)) {
+        return eval_sequence(
+                procedure_body(procedure),
+                (extend_environment(procedure_parameters(procedure),
+                  arguments, procedure_environment(procedure))));
     }
     return mkerror("Unknown procedure type - APPLY");
 }
-
-
 
 bool self_evaluatingp(cell exp) {
     return (exp->type == STRING || numberp(exp) || nullp(exp));
@@ -340,12 +400,12 @@ cell if_alternate(cell exp) {
 }
 
 cell mkif(cell predicate, cell consequent, cell altnerate) {
-    return cons(mksym(IF), cons(predicate, cons(consequent, altnerate)));
+    return cons(lisp_if, cons(predicate, cons(consequent, altnerate)));
 }
 
 
 cell mkbegin(cell seq) {
-    return cons(mksym(BEGIN), seq);
+    return cons(lisp_begin, seq);
 }
 
 cell sequence_exp(cell seq) {
@@ -472,6 +532,28 @@ bool lisp_eq(cell lhs, any rhs) {
     return result;
 }
 
+cell mklist_from_array(size_t l, cell arr[]) {
+    bool first = true;
+    cell exp;
+    cell list=nil;
+    cell c=nil;
+    cell last=nil;
+    for(size_t i=0; i<l; i++) {
+        exp = arr[i];
+        c = cons(exp, nil);
+        if (first) {
+            first = false;
+            list = last = c;
+        } else {
+            setcdrb(last, c);
+            last = c;
+        }
+    }
+    setcdrb(last, nil);
+    return list;
+}
+
+
 cell mklist(int l, ...) {
     va_list ap;
     bool first = true;
@@ -556,7 +638,6 @@ cell lisp_alloc(enum lisp_type type, size_t length, any data, cell rest) {
         default:
             if (length == 0 || data == NULL || data == nil) {
                 result->data = nil;
-//              result->length = lisp_sizeof(CONS);
             } else {
                 switch (type) {
                     case FIXNUM:
@@ -644,7 +725,7 @@ cell lisp_read_list(const char **buf) {
             case '\'':
                 doquote = true;
                 ++*buf;
-                break;
+                continue;
             case ')':
                 ++*buf;
                 return list;
@@ -739,6 +820,7 @@ cell lisp_read_string(const char **buf) {
         escaped = (**buf == '\\');
 
         if (**buf == '"' && !escaped) {
+            ++*buf;
             data[i] = 0;
             break;
         }
@@ -760,6 +842,7 @@ cell lisp_read(const char **buf) {
     while(**buf) {
         if (isspace(**buf)) {
             ++*buf;
+            doquote = false;
             continue;
         }
         switch (**buf) {
@@ -791,6 +874,10 @@ void lisp_init() {
     nil          = primary_alloc(NIL, lisp_sizeof(CONS), NULL, NULL);
     setcarb(nil, nil); setcdrb(nil, nil);
     all_objects  = primary_alloc(CONS, lisp_sizeof(CONS), nil, nil);
+    lisp_true    = mksym(T);
+    lisp_if      = mksym(IF);
+    lisp_begin   = mksym(BEGIN);
+    procedure    = mksym(PROC);
 
     // Cleanup all will get these
     the_empty_environment = cons(nil, nil);
@@ -890,15 +977,14 @@ void lisp_pprint(cell i) {
 }
 
 void lisp_print_list_aux(cell i, int depth) {
-    #define sep() puts(""); for(int i = 0; i < depth; i++) printf("  ")
+    #define sep() printf("\n"); for(int i = 0; i < depth; i++) printf("  ")
     bool first = true;
+    bool islist = listp(i);
     cell ptr = i;
     sep();
-    if (listp(i)) {
-        printf("(");
-    }
+    if (islist) printf("(");
     while(!nullp(ptr)) {
-        cell e = car(ptr);
+            cell e = car(ptr);
         if (!first) {
             printf(" ");
         }
@@ -936,10 +1022,5 @@ void lisp_print_list_aux(cell i, int depth) {
         }
         ptr = rest(ptr);
     }
-    if (listp(i)) {
-        sep();
-        printf(")");
-    }
+    if (islist) printf(")");
 }
-
-
