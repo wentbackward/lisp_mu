@@ -26,11 +26,11 @@ static char *const  PRIMITIVE  = "primitive";
 
 // Here you can affect the underlying data types used in the lisp system
 #ifdef WITH_FLOATING_POINT
-typedef double  lisp_float;
+typedef double          lisp_float;
 #endif
-typedef long    lisp_fixnum;
-typedef char    lisp_char;
-typedef void    *any;
+typedef long long int   lisp_fixnum;
+typedef char            lisp_char;
+typedef void            *any;
 enum lisp_type {
     NIL, CONS, FIXNUM, FLOAT, STRING, SYM, ERROR, FN
 };

@@ -65,7 +65,7 @@ int main() {
 
     clock_t t_start, t_end;
     start_timer(t_start);
-    const int iters = 1000;
+    const int iters = 100000;
     for(int i=0; i< iters ; ++i) {
 
         // General utilities
@@ -105,6 +105,7 @@ int main() {
 
         continue;
         test_eval_cond();               // TODO: eval cond
+        // TODO: Floats
 
         // Libraries exposed from C
         // TODO: Maths library

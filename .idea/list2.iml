@@ -2,13 +2,14 @@
 <module type="CPP_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/main.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/lisp_mu.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/tinyprintf.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/lisp_mu.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test_all.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/tinyprintf.c" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/repl.c" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library">
