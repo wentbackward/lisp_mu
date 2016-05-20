@@ -65,7 +65,7 @@ int main() {
 
     clock_t t_start, t_end;
     start_timer(t_start);
-    const int iters = 100000;
+    const int iters = 1000;
     for(int i=0; i< iters ; ++i) {
 
         // General utilities
