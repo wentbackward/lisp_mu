@@ -60,7 +60,6 @@ void my_putc( void* p, char c) {
     fflush(stdout);
 }
 
-
 int main() {
     init_printf(NULL, my_putc);
 

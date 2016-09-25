@@ -28,7 +28,7 @@ static char *const  PRIMITIVE  = "primitive";
 #ifdef WITH_FLOATING_POINT
 typedef double          lisp_float;
 #endif
-typedef long long int   lisp_fixnum;
+typedef long int        lisp_fixnum;
 typedef char            lisp_char;
 typedef void            *any;
 enum lisp_type {
