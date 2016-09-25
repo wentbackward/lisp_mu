@@ -65,7 +65,7 @@ int main() {
 
     clock_t t_start, t_end;
     start_timer(t_start);
-    const int iters = 10000;
+    const int iters = 100000;
     for(int i=0; i< iters ; ++i) {
 
         // General utilities
@@ -446,6 +446,7 @@ void test_eval() {
 }
 
 void test_mklist() {
+    lisp_init();
     cell exp;
 
     exp = mklist(3, mksym("set!"), mksym("x"), mkfixnum(42));
@@ -462,6 +463,7 @@ void test_mklist() {
     assert_ctr(lisp_equals(cadddr(exp), mkfixnum(42)) && "finally should be should a fixnum of 42");
     assert_ctr(lisp_equals(nth(exp, 5), mkfixnum(24)) && "finally should be should a fixnum of 24");
 
+    lisp_cleanup();
 }
 
 void test_eval_quoted() {

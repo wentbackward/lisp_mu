@@ -632,6 +632,8 @@ cell primary_alloc(enum lisp_type type, size_t length, any data, cell rest) {
 
 cell lisp_alloc(enum lisp_type type, size_t length, any data, cell rest) {
     cell result = primary_alloc(type, length, data, rest);
+    any ptr;
+    size_t len;
 
     switch (type) {
         case FN:
@@ -644,11 +646,16 @@ cell lisp_alloc(enum lisp_type type, size_t length, any data, cell rest) {
                 switch (type) {
                     case FIXNUM:
                     case FLOAT:
+                        ptr = malloc(length);
+                        memcpy(ptr, data, length);
+                        result->data = ptr;
+                        break;
                     case STRING:
                     case SYM:
                     case ERROR: {
-                        any ptr = malloc(length);
-                        memcpy(ptr, data, length);
+                        len = strlen(data) + 1;
+                        ptr = malloc(len);
+                        memcpy(ptr, data, len);
                         result->data = ptr;
                         break;
                     default:
