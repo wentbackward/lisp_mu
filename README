@@ -1,33 +1,39 @@
 About MU LISP
-MU LISP is a lightweight, LISPy language, intended for embedded applications on processors such
-as the ARM cortex M0 and up.
+MU LISP is a lightweight, LISPy language, intended for embedded applications on processors such as the ARM
+cortex M0.
 
 1. I need the ability to create higher level abstractions on the hardware and felt the processing power
    combined with FPGA type functionality now available on low cost chips such as Cypress' PSoC4 give me
-   sufficient processing power to use these abstractions
+   sufficient processing power to use these abstractions.
 
 2. Being able to create data abstraction boundaries and support message passing between devices is
-   increasingly important.
+   increasingly important. Rather than writing a new language, S-expressions seemed ideal for my needs.
 
 The language itself provides only a base upon which the user can build abstractions to the underlying hardware. This
 is the whole purpose of MU LISP, to allow creation of a robust and dynamic environment with which to interact
-with the hardware. So MU LISP provides no device specific features.
+with the hardware.
 
-LISP lambda calculus was chosen for several reasons. It is simple to parse. Evaluation is a well documented
-path. Code and data use the same structure, thus both can be passed around as messages. Processing of lists and
-streams allows for delayed execution as well as providing effective means of dealing with infinity. This helps
-with the major drawback, particularly for real-time applications, that the number of cycles (time/power) of many
-list processing operations are based upon the composition of the underlying lists. To help manage this, evaluation
-can be easily delayed and the garbage collector is not automatic.
+MU LISP will not bloat, as that makes no sense for it's purpose. It will never support a LISP standard or have
+standard libraries. The idea is to configure the hardware and language in unison.
+
+LISP lambda calculus was chosen for several reasons. It is simple to parse as a stream, without BNFs or similar.
+Evaluation is a well documented path. Code and data use the same structure, thus both can be passed around
+as messages in plain text via serial interfaces. Processing of lists and streams allows for delayed execution
+as well as providing effective means of dealing with infinity.
+
+The major drawback, particularly for real-time applications, is that the number of cycles (time/power) of many
+list processing operations are based upon the composition of the underlying lists. There is a garbage collector,
+but it is not automatic.
 
 Purposes of MU LISP
 * a general purpose language for embedded processing.
-* an extensible language, such that the hardware designer can further abstract a language specific
-  to their application.
+* an extensible language, such that the hardware designer can further abstract a language specific to their
+    application / needs.
+* no bloat.
 * a data storage mechanism.
-* a communication protocol.
+* a plain text, streaming, communication protocol.
 * a configuration tool.
-* a dynamic, field programmable environment
+* a dynamic, field programmable environment.
 
 General purpose language
 MU LISP is an interpreted language that is simple enough to run on low power hardware such as the ARM Cortex M0. The
@@ -36,7 +42,9 @@ necessary to complete the task in hand.
 
 Data storage mechanism
 MU LISP can be used for simple data storage and retrieval on the device, either from C or within MU LISP itself. The
-language frees the programmer from memory management worries.
+language frees the programmer from memory management worries and is extensively tested for leaks. MU LISP is
+essentially a very powerful type of linked list with built in memory management features and is directly
+usable in C.
 
 Communication Protocol
 A REPL can be made available over serial or other channels such that devices can exchange information in LISP
@@ -81,7 +89,10 @@ always be 2N if no circular references exist.
 
 Memory Leaks
 The code has been checked by running the test suite along with a memory profiler (Dr Memory v1.10
-64bit mode on windows). There are no detected leaks.
+64bit mode on windows, valgrind on mac osx). The entire test suite is run several thousand times, resulting
+in several million tests, several billions of bytes alloc'ed and freed. The test suite consistently loses about
+2Kb of 'possibly' lost memory, regarless of how many iterations. I think this is some overhead in the test suite.
+I'd say this library has no leaks under normal operation.
 
 It is possible to create a leak from C using the lisp utilities, as you can set the car of several conses to the same
 memory address. There are no checks for this. Within MU LISP car will copy the underlying data structure for
@@ -89,10 +100,16 @@ safety reasons.
 
 Again, until MU LISP is used in anger, I don't want to prematurely optimise anything here.
 
-To run the memory profiler on windows:
+Profiling the memory:
+Build in debug
 Set the test iterations to a suitably high value.
 Get the correct executable path from cmake
+
+To run the memory profiler on windows:
 "C:\Program Files (x86)\Dr. Memory\bin64\drmemory.exe" -show_reachable -- C:\Users\paul\.CLion2016.1\system\cmake\generated\list2-c181260f\c181260f\Debug\lisp_mu_test.exe
+
+To run the memory profiler on Mac OSX:
+valgrind --leak-check=full --show-leak-kinds=all  /Users/xxx/hacking/cpp/mulisp/Debug/lisp_mu_test
 
 Debugger
 Would be nice to have one.
@@ -101,7 +118,7 @@ Data Types
 Currently these are the supported data types:
 SYMBOL: Any contiguous stream of characters except brackets and space. A symbol can have numbers but cannot be
         a number. Symbols either represent themselves or represent a function or data.
-FIXNUM: Any symbol that can be interpreted as an integer. The underlying storage is `long` from your C compiler
+FIXNUM: Any symbol that can be interpreted as an integer. The underlying storage is `long long` from your C compiler
 FLOAT:  Any symbol that can be interpreted as a floating point decimal and WITH_FLOATING_POINT is enabled in the header
         file. The underlying storage is a double from your C compiler
 STRING: Any continuous stream of characters contained within double quotes will be read as a "String". Escaping
@@ -122,14 +139,12 @@ append, begin, lambda
 equal
 map, apply, proc,
 
-
 Multithreading / Concurrency
-Sorry but I have need for it at present. The library is inherently thread unsafe, but should be simple enough
-to add required semaphores to protect objects and references or a message passing paradigm might be more suited
-to embedded applications.
+Sorry but I have no need for it at present. The library is inherently thread unsafe due to the central 'env' frames,
+but should be simple enough to add required semaphores to protect objects.
 
 Compatibility
-MU LISP is not compatible with any scheme or lisp specifications. The intention is to leverage the benfits of lisp
+MU LISP is not compatible with any scheme or lisp specifications. The intention is to leverage the benefits of lisp
 in an embedded environment, where any bloat cannot be tolerated.
 
 Useful references
@@ -148,9 +163,8 @@ than I can accommodate. I am a long time user of SBCL and have built several sys
 * http://www.sonoma.edu/users/l/luvisi/sl5.c
 * http://c2.com/cgi/wiki?GarbageCollection
 
-
 Caveat
 I have written some DSLs in my working life, however this is the first full blown language / interpreter. Judging by how
 much I have learned whilst creating MU LISP, there must surely be significant shortcomings that will surface only
-once MU LISP is used in production
+once MU LISP is used in production - May 2016.
 
