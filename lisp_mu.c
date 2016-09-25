@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-
 const char * ERR_SYMTOOLONG = "Symbol length too long";
 const char * ERR_LISTNOTTERMINATED = "List was not terminated";
 
@@ -32,7 +31,7 @@ char * types[] = {"NIL","CONS","FIXNUM","FLOAT","STRING","SYM","ERROR"};
  *
  */
 bool lisp_sweep() {
-
+    return false;
 }
 
 bool lisp_free(bool force_clean_all) {
@@ -60,6 +59,7 @@ bool lisp_free(bool force_clean_all) {
     }
 
     // Check if !marked
+    return true;
 
 }
 
@@ -344,19 +344,20 @@ cell set_variable_valueb(cell var, cell val, cell env) {
     return env_loop2(env, var, val);
 }
 
+cell def_variable_aux(cell vars,cell vals, cell var, cell val, cell frame) {
+    bool should_define = nullp(vars);
+    bool found = lisp_equals(var, car(vars));
+    if (should_define)
+        return add_binding_to_frameb(var, val, frame);
+    else if (found)
+        return setcarb(vals, val);
+    else
+        return def_variable_aux(cdr(vars), cdr(vals), var, val, frame);
+}
+
 cell define_variableb(cell var, cell val, cell env) {
     cell frame = first_frame(env);
-
-    cell scan(cell vars,cell vals) {
-        if (nullp(vars))
-            return add_binding_to_frameb(var, val, frame);
-        else if (lisp_equals(var, car(vars)))
-            return setcarb(vals, val);
-        else
-            return scan(cdr(vars), cdr(vals));
-    }
-
-    return scan(frame_variables(frame), frame_values(frame));
+    return def_variable_aux(frame_variables(frame), frame_values(frame), var, val, frame);
 }
 
 cell apply(cell procedure, cell arguments) {
@@ -482,7 +483,7 @@ cell append(cell head, cell other) {
     return list;
 }
 
-bool nullp(cell exp) { lisp_equals(exp, nil); }
+bool nullp(cell exp) { return lisp_equals(exp, nil); }
 bool listp(cell exp) {
     if (nullp(exp)) return true;
     return (exp->type == CONS);
@@ -582,8 +583,9 @@ cell mklist(int l, ...) {
  * Compare two lisp expressions
  */
 bool lisp_equals(cell lhs, cell rhs) {
-    bool result = false;
     if (lhs == rhs) return true;
+
+    bool result = false;
     if (lhs->type != rhs->type) return false;
 
     switch (lhs->type) {

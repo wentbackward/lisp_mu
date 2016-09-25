@@ -60,12 +60,13 @@ void my_putc( void* p, char c) {
     fflush(stdout);
 }
 
+
 int main() {
     init_printf(NULL, my_putc);
 
     clock_t t_start, t_end;
     start_timer(t_start);
-    const int iters = 100000;
+    const int iters = 10000;
     for(int i=0; i< iters ; ++i) {
 
         // General utilities

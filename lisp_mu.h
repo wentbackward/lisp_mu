@@ -148,6 +148,7 @@ cell primitive_procedure_names();
 bool variablep(cell exp);
 cell lookup_variable_value(cell var, cell env);
 cell set_variable_valueb(cell var, cell val, cell env);
+cell def_variable_aux(cell vars,cell vals, cell var, cell val, cell frame);
 cell define_variableb(cell var, cell val, cell env);
 
 // Definition variables
